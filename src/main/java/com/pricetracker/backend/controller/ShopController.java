@@ -3,6 +3,7 @@ package com.pricetracker.backend.controller;
 import com.pricetracker.backend.dto.request.ShopRequestDTO;
 import com.pricetracker.backend.dto.response.ShopResponseDTO;
 import com.pricetracker.backend.service.ShopService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,14 +29,14 @@ public class ShopController {
     }
 
     @PostMapping
-    public ResponseEntity<ShopResponseDTO> createShop(@RequestBody ShopRequestDTO shop) {
+    public ResponseEntity<ShopResponseDTO> createShop(@Valid @RequestBody ShopRequestDTO shop) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(shopService.createShop(shop));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ShopResponseDTO> updateShop(@PathVariable Long id,
-                                                      @RequestBody ShopRequestDTO shop) {
+                                                      @Valid @RequestBody ShopRequestDTO shop) {
         return ResponseEntity.ok(shopService.updateShop(id, shop));
     }
 
