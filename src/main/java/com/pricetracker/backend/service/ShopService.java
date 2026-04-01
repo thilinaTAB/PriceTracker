@@ -3,6 +3,7 @@ package com.pricetracker.backend.service;
 import com.pricetracker.backend.dto.request.ShopRequestDTO;
 import com.pricetracker.backend.dto.response.ShopResponseDTO;
 import com.pricetracker.backend.entity.Shop;
+import com.pricetracker.backend.exception.ResourceNotFoundException;
 import com.pricetracker.backend.repository.ShopRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,7 +26,8 @@ public class ShopService {
 
     public ShopResponseDTO getShopById(Long id) {
         Shop shop = shopRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Shop not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Shop not found with id: " + id));
         return convertToResponseDTO(shop);
     }
 
@@ -36,7 +38,8 @@ public class ShopService {
 
     public ShopResponseDTO updateShop(Long id, ShopRequestDTO requestDTO) {
         Shop existingShop = shopRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Shop not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Shop not found with id: " + id));
 
         existingShop.setName(requestDTO.getName());
         existingShop.setWebsiteUrl(requestDTO.getWebsiteUrl());
@@ -47,7 +50,10 @@ public class ShopService {
     }
 
     public void deleteShop(Long id) {
-        shopRepository.deleteById(id);
+        Shop shop = shopRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Shop not found with id: " + id));
+        shopRepository.delete(shop);
     }
 
     private ShopResponseDTO convertToResponseDTO(Shop shop) {
