@@ -1,6 +1,7 @@
 package com.pricetracker.backend.controller;
 
-import com.pricetracker.backend.entity.Shop;
+import com.pricetracker.backend.dto.request.ShopRequestDTO;
+import com.pricetracker.backend.dto.response.ShopResponseDTO;
 import com.pricetracker.backend.service.ShopService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,22 +18,24 @@ public class ShopController {
     private final ShopService shopService;
 
     @GetMapping
-    public ResponseEntity<List<Shop>> getAllShops() {
+    public ResponseEntity<List<ShopResponseDTO>> getAllShops() {
         return ResponseEntity.ok(shopService.getAllShops());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Shop> getShopById(@PathVariable Long id) {
+    public ResponseEntity<ShopResponseDTO> getShopById(@PathVariable Long id) {
         return ResponseEntity.ok(shopService.getShopById(id));
     }
 
     @PostMapping
-    public ResponseEntity<Shop> createShop(@RequestBody Shop shop) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(shopService.createShop(shop));
+    public ResponseEntity<ShopResponseDTO> createShop(@RequestBody ShopRequestDTO shop) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(shopService.createShop(shop));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Shop> updateShop(@PathVariable Long id, @RequestBody Shop shop) {
+    public ResponseEntity<ShopResponseDTO> updateShop(@PathVariable Long id,
+                                                      @RequestBody ShopRequestDTO shop) {
         return ResponseEntity.ok(shopService.updateShop(id, shop));
     }
 
