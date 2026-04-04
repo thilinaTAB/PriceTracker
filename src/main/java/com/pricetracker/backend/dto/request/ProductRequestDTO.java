@@ -1,6 +1,6 @@
 package com.pricetracker.backend.dto.request;
 
-import com.pricetracker.backend.entity.Category;
+import com.pricetracker.backend.util.enums.Category;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
