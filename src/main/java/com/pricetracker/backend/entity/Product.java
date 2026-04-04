@@ -35,10 +35,10 @@ public class Product {
     private Category category;
 
     @Column(nullable = false)
-    private boolean isPromotion = false;
+    private Boolean isPromotion = false;
 
     @Column(nullable = false)
-    private boolean isAvailable = true;
+    private Boolean isAvailable = true;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "shop_id", nullable = false)
