@@ -1,5 +1,6 @@
 package com.pricetracker.backend.entity;
 
+import com.pricetracker.backend.util.enums.Category;
 import jakarta.persistence.*;
 import lombok.Data;
 
