@@ -1,6 +1,6 @@
 package com.pricetracker.backend.dto.response;
 
-import com.pricetracker.backend.entity.Category;
+import com.pricetracker.backend.util.enums.Category;
 import lombok.Data;
 
 import java.math.BigDecimal;
