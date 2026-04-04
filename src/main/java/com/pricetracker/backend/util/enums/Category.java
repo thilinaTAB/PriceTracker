@@ -1,4 +1,4 @@
-package com.pricetracker.backend.entity;
+package com.pricetracker.backend.util.enums;
 
 public enum Category {
     GROCERY,
