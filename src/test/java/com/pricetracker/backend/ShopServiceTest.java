@@ -77,8 +77,7 @@ class ShopServiceTest {
     void getShopById_WhenShopNotExists_ShouldThrowException() {
         when(shopRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class,
-                () -> shopService.getShopById(999L));
+        assertThrows(ResourceNotFoundException.class, () -> shopService.getShopById(999L));
     }
 
     @Test
@@ -105,7 +104,6 @@ class ShopServiceTest {
     void deleteShop_WhenShopNotExists_ShouldThrowException() {
         when(shopRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class,
-                () -> shopService.deleteShop(999L));
+        assertThrows(ResourceNotFoundException.class, () -> shopService.deleteShop(999L));
     }
 }
