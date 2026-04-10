@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -72,6 +73,39 @@ public class ProductService {
         existingProduct.setShop(shop);
 
         return convertToResponseDTO(productRepository.save(existingProduct));
+    }
+
+    public ProductResponseDTO syncScrapedProduct(ProductRequestDTO requestDTO) {
+        Optional<Product> existingProductOpt = productRepository.findBySourceUrl(requestDTO.getSourceUrl());
+
+        if (existingProductOpt.isPresent()) {
+            Product existingProduct = existingProductOpt.get();
+
+            // ⚠️ INDUSTRY STANDARD: Never use .equals() for BigDecimal.
+            // .equals() thinks 10.0 and 10.00 are different. .compareTo() knows they are the same.
+            if (existingProduct.getPrice().compareTo(requestDTO.getPrice()) != 0) {
+
+                // Move the current price to previousPrice
+                existingProduct.setPreviousPrice(existingProduct.getPrice());
+                // Set the newly scraped price
+                existingProduct.setPrice(requestDTO.getPrice());
+
+                // Optional: Update name or image if the scraper found better ones
+                existingProduct.setImageUrl(requestDTO.getImageUrl());
+                existingProduct.setName(requestDTO.getName());
+                existingProduct.setIsPromotion(requestDTO.getIsPromotion());
+                existingProduct.setIsAvailable(requestDTO.getIsAvailable());
+
+                return convertToResponseDTO(productRepository.save(existingProduct));
+            }
+
+            // If the price is the same, we just return the existing product (no database update needed)
+            return convertToResponseDTO(existingProduct);
+
+        } else {
+            // Product doesn't exist at all, so we create it natively
+            return createProduct(requestDTO);
+        }
     }
 
     public void deleteProduct(Long id) {
