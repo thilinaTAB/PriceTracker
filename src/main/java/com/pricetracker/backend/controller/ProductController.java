@@ -39,6 +39,12 @@ public class ProductController {
                 .body(productService.createProduct(product));
     }
 
+    @PostMapping("/sync")
+    public ResponseEntity<ProductResponseDTO> syncProduct(@Valid @RequestBody ProductRequestDTO product) {
+        // We return 200 OK because it might be an update OR a creation
+        return ResponseEntity.ok(productService.syncScrapedProduct(product));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<ProductResponseDTO> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductRequestDTO product) {
         return ResponseEntity.ok(productService.updateProduct(id, product));
