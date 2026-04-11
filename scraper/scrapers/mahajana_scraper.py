@@ -36,7 +36,7 @@ async def scrape_product(page, url):
 
         name = name.strip() if name else None
 
-        image = await page.locator('img').first.get_attribute('src')
+        image = await page.locator('img[data-nimg="1"][width="1024"]').first.get_attribute('src')
 
         price_elements = await page.locator('p[style*="font-weight: 600"]').all()
         current_price = None
