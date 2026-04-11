@@ -44,6 +44,7 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
 
       - name: Build and run tests
+        working-directory: backend
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/pricetracker_test
           SPRING_DATASOURCE_USERNAME: postgres
@@ -57,4 +58,4 @@ jobs:
         if: always()
         with:
           name: test-results
-          path: target/surefire-reports/
+          path: backend/target/surefire-reports/
