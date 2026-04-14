@@ -100,9 +100,20 @@ async def run_scraper():
 
         for category, urls in CATEGORIES.items():
             for category_url in urls:
-                product_urls = await scrape_category(page, category_url)
+                page_num = 1
+                all_urls = []
 
-                for product_url in product_urls:
+                while True:
+                    url = f"{category_url}?page={page_num}"
+                    found_urls = await scrape_category(page, url)
+
+                    if not found_urls:
+                        break
+
+                    all_urls.extend(found_urls)
+                    page_num += 1
+
+                for product_url in all_urls:
                     product = await scrape_product(page, product_url)
 
                     if product:
