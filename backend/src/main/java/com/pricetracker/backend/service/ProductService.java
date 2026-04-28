@@ -68,6 +68,7 @@ public class ProductService {
         existingProduct.setImageUrl(requestDTO.getImageUrl());
         existingProduct.setSourceUrl(requestDTO.getSourceUrl());
         existingProduct.setCategory(requestDTO.getCategory());
+        existingProduct.setSubCategory(requestDTO.getSubCategory());
         existingProduct.setIsPromotion(requestDTO.getIsPromotion());
         existingProduct.setIsAvailable(requestDTO.getIsAvailable());
         existingProduct.setShop(shop);
@@ -125,6 +126,7 @@ public class ProductService {
         dto.setImageUrl(product.getImageUrl());
         dto.setSourceUrl(product.getSourceUrl());
         dto.setCategory(product.getCategory());
+        dto.setSubCategory(product.getSubCategory());
         dto.setIsPromotion(product.getIsPromotion());
         dto.setIsAvailable(product.getIsAvailable());
         dto.setShopId(product.getShop().getId());
@@ -147,6 +149,7 @@ public class ProductService {
         product.setImageUrl(dto.getImageUrl());
         product.setSourceUrl(dto.getSourceUrl());
         product.setCategory(dto.getCategory());
+        product.setSubCategory(dto.getSubCategory());
         product.setIsPromotion(dto.getIsPromotion());
         product.setIsAvailable(dto.getIsAvailable());
         product.setShop(shop);
