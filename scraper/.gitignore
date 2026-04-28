@@ -15,3 +15,6 @@ playwright-browsers/
 # IDE
 .idea/
 .vscode/
+
+#test files
+test_*.py
