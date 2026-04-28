@@ -7,12 +7,11 @@ SHOP_URL = "https://www.nanotek.lk"
 SHOP_LOGO = "https://www.nanotek.lk/imgs/logo/nanotek-logo-social.jpg"
 
 CATEGORIES = {
-    "ELECTRONICS": [
-        "https://www.nanotek.lk/category/laptop",
-        "https://www.nanotek.lk/category/monitors-monitor-arms",
-        "https://www.nanotek.lk/category/graphics-card",
-        "https://www.nanotek.lk/category/processor",
-    ]
+        "https://www.nanotek.lk/category/laptop": ("ELECTRONICS", "LAPTOP"),
+        "https://www.nanotek.lk/category/monitors-monitor-arms": ("ELECTRONICS", "MONITOR"),
+        "https://www.nanotek.lk/category/graphics-card": ("ELECTRONICS", "GRAPHICS_CARD"),
+        "https://www.nanotek.lk/category/processor": ("ELECTRONICS", "PROCESSOR"),
+
 }
 
 def clean_price(price_text):
@@ -94,8 +93,7 @@ async def run_scraper():
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
 
-        for category, urls in CATEGORIES.items():
-            for category_url in urls:
+        for category_url, (category, sub_category) in CATEGORIES.items():
                 page_num = 1
                 all_urls = []
 
@@ -115,6 +113,7 @@ async def run_scraper():
                     if product:
                         product["shopId"] = shop_id
                         product["category"] = category
+                        product["subCategory"] = sub_category
                         api.save_product(product)
 
                     await asyncio.sleep(1)
