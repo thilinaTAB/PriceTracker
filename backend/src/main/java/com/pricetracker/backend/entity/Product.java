@@ -1,6 +1,7 @@
 package com.pricetracker.backend.entity;
 
 import com.pricetracker.backend.util.enums.Category;
+import com.pricetracker.backend.util.enums.SubCategory;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -34,6 +35,10 @@ public class Product {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Category category;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private SubCategory subCategory;
 
     @Column(nullable = false)
     private Boolean isPromotion = false;

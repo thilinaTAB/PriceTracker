@@ -1,6 +1,7 @@
 package com.pricetracker.backend.dto.response;
 
 import com.pricetracker.backend.util.enums.Category;
+import com.pricetracker.backend.util.enums.SubCategory;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -16,6 +17,7 @@ public class ProductResponseDTO {
     private String imageUrl;
     private String sourceUrl;
     private Category category;
+    private SubCategory subCategory;
     private Boolean isPromotion;
     private Boolean isAvailable;
     private Long shopId;
