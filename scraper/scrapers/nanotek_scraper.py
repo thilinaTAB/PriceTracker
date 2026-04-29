@@ -51,12 +51,12 @@ async def scrape_product(page, url):
         price_el = page.locator("span.ty-price-now").first
         prev_price_el = page.locator("span.ty-price-retail-price").first
         image_el = page.locator("div.ty-slideContent img").first
-        isAvailable_el = page.locator("span.ty-special-msg").first
+        is_available_el = page.locator("span.ty-special-msg").first
 
         is_available = True  # default
-        if await isAvailable_el.count() > 0:
-            isAvailable_text = await isAvailable_el.text_content()
-            is_available = "Out of Stock" not in isAvailable_text
+        if await is_available_el.count() > 0:
+            is_available_text = await is_available_el.text_content()
+            is_available = "Out of Stock" not in is_available_text
 
         name = await name_el.text_content()
         price_text = await price_el.text_content()
