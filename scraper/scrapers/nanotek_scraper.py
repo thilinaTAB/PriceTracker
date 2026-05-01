@@ -12,7 +12,7 @@ CATEGORIES = {
         "https://www.nanotek.lk/category/graphics-card": ("ELECTRONICS", "GRAPHICS_CARD"),
         "https://www.nanotek.lk/category/processor": ("ELECTRONICS", "PROCESSOR"),
         "https://www.nanotek.lk/category/motherboards": ("ELECTRONICS", "MOTHERBOARD"),
-        "https://www.nanotek.lk/category/memory-ram:": ("ELECTRONICS", "RAM"),
+        "https://www.nanotek.lk/category/memory-ram": ("ELECTRONICS", "RAM"),
         "https://www.nanotek.lk/category/storage-nas": ("ELECTRONICS", "STORAGE"),
         "https://www.nanotek.lk/category/desktop-workstations": ("ELECTRONICS", "DESKTOP"),
         "https://www.nanotek.lk/category/power-supply-ups-surge-protectors": ("ELECTRONICS", "POWER_SUPPLY_UPS"),
@@ -52,6 +52,7 @@ async def scrape_product(page, url):
         prev_price_el = page.locator("span.ty-price-retail-price").first
         image_el = page.locator("div.ty-slideContent img").first
         is_available_el = page.locator("span.ty-special-msg").first
+        description_el = page.locator("div.ty-productPage-info.js-product-page-description-container").first
 
         is_available = True  # default
         if await is_available_el.count() > 0:
@@ -60,6 +61,7 @@ async def scrape_product(page, url):
 
         name = await name_el.text_content()
         price_text = await price_el.text_content()
+        description = await description_el.text_content()
 
 
         prev_price_text = None
@@ -83,7 +85,8 @@ async def scrape_product(page, url):
             "imageUrl": image_url,
             "sourceUrl": url,
             "isPromotion": previous_price is not None,
-            "isAvailable": is_available
+            "isAvailable": is_available,
+            "description": description
         }
 
     except Exception as e:
