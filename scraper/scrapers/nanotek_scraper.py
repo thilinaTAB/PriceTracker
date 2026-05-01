@@ -11,6 +11,11 @@ CATEGORIES = {
         "https://www.nanotek.lk/category/monitors-monitor-arms": ("ELECTRONICS", "MONITOR"),
         "https://www.nanotek.lk/category/graphics-card": ("ELECTRONICS", "GRAPHICS_CARD"),
         "https://www.nanotek.lk/category/processor": ("ELECTRONICS", "PROCESSOR"),
+        "https://www.nanotek.lk/category/motherboards": ("ELECTRONICS", "MOTHERBOARD"),
+        "https://www.nanotek.lk/category/memory-ram": ("ELECTRONICS", "RAM"),
+        "https://www.nanotek.lk/category/storage-nas": ("ELECTRONICS", "STORAGE"),
+        "https://www.nanotek.lk/category/desktop-workstations": ("ELECTRONICS", "DESKTOP"),
+        "https://www.nanotek.lk/category/power-supply-ups-surge-protectors": ("ELECTRONICS", "POWER_SUPPLY_UPS"),
 
 }
 
@@ -46,15 +51,17 @@ async def scrape_product(page, url):
         price_el = page.locator("span.ty-price-now").first
         prev_price_el = page.locator("span.ty-price-retail-price").first
         image_el = page.locator("div.ty-slideContent img").first
-        isAvailable_el = page.locator("span.ty-special-msg").first
+        is_available_el = page.locator("span.ty-special-msg").first
+        description_el = page.locator("div.ty-productPage-info.js-product-page-description-container").first
 
         is_available = True  # default
-        if await isAvailable_el.count() > 0:
-            isAvailable_text = await isAvailable_el.text_content()
-            is_available = "Out of Stock" not in isAvailable_text
+        if await is_available_el.count() > 0:
+            is_available_text = await is_available_el.text_content()
+            is_available = "Out of Stock" not in is_available_text
 
         name = await name_el.text_content()
         price_text = await price_el.text_content()
+        description = await description_el.text_content()
 
 
         prev_price_text = None
@@ -78,7 +85,8 @@ async def scrape_product(page, url):
             "imageUrl": image_url,
             "sourceUrl": url,
             "isPromotion": previous_price is not None,
-            "isAvailable": is_available
+            "isAvailable": is_available,
+            "description": description
         }
 
     except Exception as e:
