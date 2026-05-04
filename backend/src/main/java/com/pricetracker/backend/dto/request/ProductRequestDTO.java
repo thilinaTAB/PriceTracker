@@ -15,6 +15,12 @@ public class ProductRequestDTO {
     @NotBlank(message = "Product name cannot be empty")
     private String name;
 
+    private String brand;
+
+    private String modelNumber;
+
+    private String sku;
+
     private String description;
 
     @NotNull(message = "Price cannot be empty")
