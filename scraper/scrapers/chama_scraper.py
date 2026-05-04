@@ -10,6 +10,14 @@ SHOP_LOGO = "https://www.chamacomputers.lk/img/LOGO_White.png"
 CATEGORIES = {
     "https://www.chamacomputers.lk/products/processors": ("ELECTRONICS", "PROCESSOR"),
     "https://www.chamacomputers.lk/products/memory": ("ELECTRONICS", "RAM"),
+    "https://www.chamacomputers.lk/products/thermal%20paste": ("ELECTRONICS", "OTHER_ELECTRONICS"),
+    "https://www.chamacomputers.lk/products/motherboards": ("ELECTRONICS", "MOTHERBOARD"),
+    "https://www.chamacomputers.lk/products/coolers": ("ELECTRONICS", "OTHER_ELECTRONICS"),
+    "https://www.chamacomputers.lk/products/ssd": ("ELECTRONICS", "STORAGE"),
+    "https://www.chamacomputers.lk/products/storage": ("ELECTRONICS", "STORAGE"),
+    "https://www.chamacomputers.lk/products/graphics%20cards": ("ELECTRONICS", "GRAPHICS_CARD"),
+    "https://www.chamacomputers.lk/products/power%20supply": ("ELECTRONICS", "POWER_SUPPLY_UPS"),
+
 }
 
 HEADERS = {
@@ -56,6 +64,8 @@ def scrape_product(product_path):
             return None
 
         name = product_data.get("name")
+        brand = product_data.get("brand", {}).get("name")
+        sku = product_data.get("sku")
         image = product_data.get("image")
         offers = product_data.get("offers", {})
         price = clean_price(offers.get("price"))
@@ -68,6 +78,8 @@ def scrape_product(product_path):
 
         return {
             "name": name,
+            "brand": brand,
+            "sku": sku,
             "price": price,
             "previousPrice": None,
             "imageUrl": image,

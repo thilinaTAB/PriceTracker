@@ -62,6 +62,9 @@ public class ProductService {
                         "Shop not found with id: " + requestDTO.getShopId()));
 
         existingProduct.setName(requestDTO.getName());
+        existingProduct.setBrand(requestDTO.getBrand());
+        existingProduct.setModelNumber(requestDTO.getModelNumber());
+        existingProduct.setSku(requestDTO.getSku());
         existingProduct.setDescription(requestDTO.getDescription());
         existingProduct.setPrice(requestDTO.getPrice());
         existingProduct.setPreviousPrice(requestDTO.getPreviousPrice());
@@ -120,6 +123,9 @@ public class ProductService {
         ProductResponseDTO dto = new ProductResponseDTO();
         dto.setId(product.getId());
         dto.setName(product.getName());
+        dto.setBrand(product.getBrand());
+        dto.setModelNumber(product.getModelNumber());
+        dto.setSku(product.getSku());
         dto.setDescription(product.getDescription());
         dto.setPrice(product.getPrice());
         dto.setPreviousPrice(product.getPreviousPrice());
@@ -143,6 +149,9 @@ public class ProductService {
 
         Product product = new Product();
         product.setName(dto.getName());
+        product.setBrand(dto.getBrand());
+        product.setModelNumber(dto.getModelNumber());
+        product.setSku(dto.getSku());
         product.setDescription(dto.getDescription());
         product.setPrice(dto.getPrice());
         product.setPreviousPrice(dto.getPreviousPrice());

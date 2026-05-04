@@ -19,6 +19,12 @@ public class Product {
     @Column(nullable = false)
     private String name;
 
+    private String brand;
+
+    private String modelNumber;
+
+    private String sku;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
