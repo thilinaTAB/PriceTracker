@@ -2,9 +2,11 @@ package com.pricetracker.backend.service;
 
 import com.pricetracker.backend.dto.request.ProductRequestDTO;
 import com.pricetracker.backend.dto.response.ProductResponseDTO;
+import com.pricetracker.backend.entity.PriceHistory;
 import com.pricetracker.backend.entity.Product;
 import com.pricetracker.backend.entity.Shop;
 import com.pricetracker.backend.exception.ResourceNotFoundException;
+import com.pricetracker.backend.repository.PriceHistoryRepository;
 import com.pricetracker.backend.repository.ProductRepository;
 import com.pricetracker.backend.repository.ShopRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final ShopRepository shopRepository;
+    private final PriceHistoryRepository priceHistoryRepository;
 
     public List<ProductResponseDTO> getAllProducts() {
         return productRepository.findAll()
@@ -88,6 +91,11 @@ public class ProductService {
             // ⚠️ INDUSTRY STANDARD: Never use .equals() for BigDecimal.
             // .equals() thinks 10.0 and 10.00 are different. .compareTo() knows they are the same.
             if (existingProduct.getPrice().compareTo(requestDTO.getPrice()) != 0) {
+
+                PriceHistory priceHistory = new PriceHistory();
+                priceHistory.setProduct(existingProduct);
+                priceHistory.setPrice(existingProduct.getPrice()); // save the OLD price before overwriting
+                priceHistoryRepository.save(priceHistory);
 
                 // Move the current price to previousPrice
                 existingProduct.setPreviousPrice(existingProduct.getPrice());
