@@ -65,6 +65,8 @@ def scrape_product(product_path):
 
         name = product_data.get("name")
         brand = product_data.get("brand", {}).get("name")
+        if brand == SHOP_NAME:
+            brand = None
         sku = product_data.get("sku")
         image = product_data.get("image")
         offers = product_data.get("offers", {})
@@ -75,6 +77,8 @@ def scrape_product(product_path):
         if not name or not price:
             print(f"⚠️ Skipping {url} — missing name or price")
             return None
+
+
 
         return {
             "name": name,

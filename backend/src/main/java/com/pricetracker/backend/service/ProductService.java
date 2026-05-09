@@ -119,7 +119,7 @@ public class ProductService {
         productRepository.delete(product);
     }
 
-    private ProductResponseDTO convertToResponseDTO(Product product) {
+    public ProductResponseDTO convertToResponseDTO(Product product) {
         ProductResponseDTO dto = new ProductResponseDTO();
         dto.setId(product.getId());
         dto.setName(product.getName());
