@@ -1,7 +1,9 @@
 package com.pricetracker.backend.controller;
 
 import com.pricetracker.backend.dto.request.ProductRequestDTO;
+import com.pricetracker.backend.dto.response.PriceHistoryResponseDTO;
 import com.pricetracker.backend.dto.response.ProductResponseDTO;
+import com.pricetracker.backend.service.PriceHistoryService;
 import com.pricetracker.backend.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+    private final PriceHistoryService priceHistoryService;
 
     @GetMapping
     public ResponseEntity<List<ProductResponseDTO>> getAllProducts() {
@@ -56,4 +59,8 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/{id}/history")
+    public ResponseEntity<List<PriceHistoryResponseDTO>> getPriceHistoryByProductId(@PathVariable Long id) {
+        return ResponseEntity.ok(priceHistoryService.getPriceHistoryByProductId(id));
+    }
 }
