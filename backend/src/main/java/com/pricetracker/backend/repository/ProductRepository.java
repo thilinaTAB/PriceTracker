@@ -12,4 +12,5 @@ import java.util.Optional;
 public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByShop(Shop shop);
     Optional<Product> findBySourceUrl(String sourceUrl);
+    List<Product> findByNameContainingIgnoreCase(String query);
 }

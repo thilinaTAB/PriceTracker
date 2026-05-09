@@ -38,10 +38,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/shops/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/compare/**").permitAll()
 
-                        // Customer endpoints — token needed
-                        .requestMatchers("/api/v1/compare/**").hasAnyAuthority(
-                                "ROLE_CUSTOMER", "ROLE_ADMIN", "ROLE_STAFF")
 
                         // Admin and Staff only
                         .requestMatchers(HttpMethod.POST, "/api/v1/shops/**").hasAnyAuthority(
