@@ -36,6 +36,11 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProductsByShop(shopId));
     }
 
+    @GetMapping("/brands")
+    public ResponseEntity<List<String>> getAllBrands() {
+        return ResponseEntity.ok(productService.findAllDistinctBrands());
+    }
+
     @PostMapping
     public ResponseEntity<ProductResponseDTO> createProduct(@Valid @RequestBody ProductRequestDTO product) {
         return ResponseEntity.status(HttpStatus.CREATED)
