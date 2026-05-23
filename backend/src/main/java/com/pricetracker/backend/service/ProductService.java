@@ -50,6 +50,10 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
+    public List<String> findAllDistinctBrands() {
+        return productRepository.findAllDistinctBrands();
+    }
+
     public ProductResponseDTO createProduct(ProductRequestDTO requestDTO) {
         Product product = convertToEntity(requestDTO);
         return convertToResponseDTO(productRepository.save(product));
