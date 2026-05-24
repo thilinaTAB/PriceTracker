@@ -60,6 +60,7 @@ async def scrape_product(page, url):
             is_available = "Out of Stock" not in is_available_text
 
         name = await name_el.text_content()
+        brand = name.split()[0] if name else None
         price_text = await price_el.text_content()
         description = await description_el.text_content()
 
@@ -80,6 +81,7 @@ async def scrape_product(page, url):
 
         return {
             "name": name,
+            "brand": brand,
             "price": price,
             "previousPrice": previous_price,
             "imageUrl": image_url,

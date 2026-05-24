@@ -2,9 +2,11 @@ package com.pricetracker.backend.service;
 
 import com.pricetracker.backend.dto.request.ProductRequestDTO;
 import com.pricetracker.backend.dto.response.ProductResponseDTO;
+import com.pricetracker.backend.entity.PriceHistory;
 import com.pricetracker.backend.entity.Product;
 import com.pricetracker.backend.entity.Shop;
 import com.pricetracker.backend.exception.ResourceNotFoundException;
+import com.pricetracker.backend.repository.PriceHistoryRepository;
 import com.pricetracker.backend.repository.ProductRepository;
 import com.pricetracker.backend.repository.ShopRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final ShopRepository shopRepository;
+    private final PriceHistoryRepository priceHistoryRepository;
 
     public List<ProductResponseDTO> getAllProducts() {
         return productRepository.findAll()
@@ -47,6 +50,10 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
+    public List<String> findAllDistinctBrands() {
+        return productRepository.findAllDistinctBrands();
+    }
+
     public ProductResponseDTO createProduct(ProductRequestDTO requestDTO) {
         Product product = convertToEntity(requestDTO);
         return convertToResponseDTO(productRepository.save(product));
@@ -62,6 +69,9 @@ public class ProductService {
                         "Shop not found with id: " + requestDTO.getShopId()));
 
         existingProduct.setName(requestDTO.getName());
+        existingProduct.setBrand(requestDTO.getBrand());
+        existingProduct.setModelNumber(requestDTO.getModelNumber());
+        existingProduct.setSku(requestDTO.getSku());
         existingProduct.setDescription(requestDTO.getDescription());
         existingProduct.setPrice(requestDTO.getPrice());
         existingProduct.setPreviousPrice(requestDTO.getPreviousPrice());
@@ -85,6 +95,11 @@ public class ProductService {
             // ⚠️ INDUSTRY STANDARD: Never use .equals() for BigDecimal.
             // .equals() thinks 10.0 and 10.00 are different. .compareTo() knows they are the same.
             if (existingProduct.getPrice().compareTo(requestDTO.getPrice()) != 0) {
+
+                PriceHistory priceHistory = new PriceHistory();
+                priceHistory.setProduct(existingProduct);
+                priceHistory.setPrice(existingProduct.getPrice()); // save the OLD price before overwriting
+                priceHistoryRepository.save(priceHistory);
 
                 // Move the current price to previousPrice
                 existingProduct.setPreviousPrice(existingProduct.getPrice());
@@ -116,10 +131,13 @@ public class ProductService {
         productRepository.delete(product);
     }
 
-    private ProductResponseDTO convertToResponseDTO(Product product) {
+    public ProductResponseDTO convertToResponseDTO(Product product) {
         ProductResponseDTO dto = new ProductResponseDTO();
         dto.setId(product.getId());
         dto.setName(product.getName());
+        dto.setBrand(product.getBrand());
+        dto.setModelNumber(product.getModelNumber());
+        dto.setSku(product.getSku());
         dto.setDescription(product.getDescription());
         dto.setPrice(product.getPrice());
         dto.setPreviousPrice(product.getPreviousPrice());
@@ -143,6 +161,9 @@ public class ProductService {
 
         Product product = new Product();
         product.setName(dto.getName());
+        product.setBrand(dto.getBrand());
+        product.setModelNumber(dto.getModelNumber());
+        product.setSku(dto.getSku());
         product.setDescription(dto.getDescription());
         product.setPrice(dto.getPrice());
         product.setPreviousPrice(dto.getPreviousPrice());
