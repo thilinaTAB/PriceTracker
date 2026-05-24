@@ -1,4 +1,4 @@
-import { ELECTRONICS_SUBCATEGORIES, formatCategoryName } from "../types/categories"
+import { CATEGORY_IMAGES, ELECTRONICS_SUBCATEGORIES, formatCategoryName } from "../types/categories"
 import { useState, useEffect } from "react";
 import { getProducts } from "../api/products";
 import type { Product } from "../types";
@@ -32,7 +32,7 @@ function DashboardPage() {
   {products.slice(0, 8).map(product => (
     <div key={product.id} className="bg-white rounded-lg shadow p-4">
       <img
-        src={product.imageUrl ?? ''}
+        src={product.imageUrl ?? CATEGORY_IMAGES[product.subCategory] ?? ''}
         alt={product.name}
         className="w-full h-40 object-contain mb-3"
       />
