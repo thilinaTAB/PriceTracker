@@ -1,7 +1,9 @@
+import ProductsPage from "./pages/ProductPage"
+
 function App() {
   return (
     <div>
-      <h1>PriceTracker</h1>
+       <ProductsPage />
     </div>
   )
 }
