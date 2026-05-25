@@ -1,7 +1,9 @@
 import { CATEGORY_IMAGES, ELECTRONICS_SUBCATEGORIES, formatCategoryName } from "../types/categories"
 import { useState, useEffect } from "react";
 import { getProducts } from "../api/products";
-import type { Product } from "../types";
+import type { Product, Shop } from "../types";
+import { getShops } from "../api/shops";
+import { data } from "react-router-dom";
 
 function DashboardPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -9,6 +11,11 @@ function DashboardPage() {
     getProducts().then(data => setProducts([...data].sort(() => Math.random() - 0.5)));
   }, [])
   const [selected, setSelected] = useState<string>('');
+
+  const [shops, setShops] = useState<Shop[]>([]);
+  useEffect(() =>{
+    getShops().then(data => setShops([...data].sort(() => Math.random() - 0.5)));
+  }, [])
 
   return (
     <div className="flex">
@@ -49,8 +56,19 @@ function DashboardPage() {
     </div>
   ))}
 </div>
+<div className="mt-12">
+  <h2 className="text-lg font-bold mb-4">Our Shops</h2>
+  <div className="flex gap-6">
+    {shops.map(shop => (
+      <a key={shop.id} href={shop.websiteUrl} target="_blank">
+        <img src={shop.logoUrl} alt={shop.name} className="h-12 w-32 object-contain" />
+      </a>
+    ))}
+  </div>
+</div>
       </div>
     </div>
+    
   )
 }
 
