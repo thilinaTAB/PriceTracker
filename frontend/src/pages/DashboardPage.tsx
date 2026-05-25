@@ -8,6 +8,7 @@ function DashboardPage() {
   useEffect(() => {
     getProducts().then(data => setProducts([...data].sort(() => Math.random() - 0.5)));
   }, [])
+  const [selected, setSelected] = useState<string>('');
 
   return (
     <div className="flex">
@@ -15,10 +16,16 @@ function DashboardPage() {
       <div className="w-40 bg-gray-800 text-white min-h-screen p-4">
         <h2 className="font-bold text-lg mb-4">Categories</h2>
         <ul>
+          <li
+  onClick={() => setSelected('')}
+  className={`p-3 rounded-lg cursor-pointer ${selected === '' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}>
+  All
+</li>
           {ELECTRONICS_SUBCATEGORIES.map((subcategory) => (
             <li
+            onClick={() => setSelected(subcategory)}
               key={subcategory}
-              className="p-3 rounded-lg hover:bg-gray-700 cursor-pointer">
+             className={`p-3 rounded-lg cursor-pointer ${selected === subcategory ? 'bg-blue-900' : 'hover:bg-gray-700'}`}>
               {formatCategoryName(subcategory)}
             </li>
           ))}
@@ -29,7 +36,7 @@ function DashboardPage() {
       <div className="flex-1 p-6">
         <h1 className="text-2xl font-bold mb-6">Featured Products</h1>
         <div className="grid grid-cols-4 gap-4">
-  {products.slice(0, 8).map(product => (
+  {(selected ? products.filter(p => p.subCategory === selected) : products.slice(0, 8)).map(product => (
     <div key={product.id} className="bg-white rounded-lg shadow p-4">
       <img
         src={product.imageUrl ?? CATEGORY_IMAGES[product.subCategory] ?? ''}
