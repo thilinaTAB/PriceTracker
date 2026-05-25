@@ -1,12 +1,20 @@
-import { ELECTRONICS_SUBCATEGORIES, formatCategoryName } from "../types/categories"
+import { CATEGORY_IMAGES, ELECTRONICS_SUBCATEGORIES, formatCategoryName } from "../types/categories"
 import { useState, useEffect } from "react";
 import { getProducts } from "../api/products";
-import type { Product } from "../types";
+import type { Product, Shop } from "../types";
+import { getShops } from "../api/shops";
+import { data } from "react-router-dom";
 
 function DashboardPage() {
   const [products, setProducts] = useState<Product[]>([]);
   useEffect(() => {
     getProducts().then(data => setProducts([...data].sort(() => Math.random() - 0.5)));
+  }, [])
+  const [selected, setSelected] = useState<string>('');
+
+  const [shops, setShops] = useState<Shop[]>([]);
+  useEffect(() =>{
+    getShops().then(data => setShops([...data].sort(() => Math.random() - 0.5)));
   }, [])
 
   return (
@@ -15,10 +23,16 @@ function DashboardPage() {
       <div className="w-40 bg-gray-800 text-white min-h-screen p-4">
         <h2 className="font-bold text-lg mb-4">Categories</h2>
         <ul>
+          <li
+  onClick={() => setSelected('')}
+  className={`p-3 rounded-lg cursor-pointer ${selected === '' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}>
+  All
+</li>
           {ELECTRONICS_SUBCATEGORIES.map((subcategory) => (
             <li
+            onClick={() => setSelected(subcategory)}
               key={subcategory}
-              className="p-3 rounded-lg hover:bg-gray-700 cursor-pointer">
+             className={`p-3 rounded-lg cursor-pointer ${selected === subcategory ? 'bg-blue-900' : 'hover:bg-gray-700'}`}>
               {formatCategoryName(subcategory)}
             </li>
           ))}
@@ -29,10 +43,10 @@ function DashboardPage() {
       <div className="flex-1 p-6">
         <h1 className="text-2xl font-bold mb-6">Featured Products</h1>
         <div className="grid grid-cols-4 gap-4">
-  {products.slice(0, 8).map(product => (
+  {(selected ? products.filter(p => p.subCategory === selected) : products.slice(0, 8)).map(product => (
     <div key={product.id} className="bg-white rounded-lg shadow p-4">
       <img
-        src={product.imageUrl ?? ''}
+        src={product.imageUrl ?? CATEGORY_IMAGES[product.subCategory] ?? ''}
         alt={product.name}
         className="w-full h-40 object-contain mb-3"
       />
@@ -42,8 +56,19 @@ function DashboardPage() {
     </div>
   ))}
 </div>
+<div className="mt-12">
+  <h2 className="text-lg font-bold mb-4">Our Shops</h2>
+  <div className="flex gap-6">
+    {shops.map(shop => (
+      <a key={shop.id} href={shop.websiteUrl} target="_blank">
+        <img src={shop.logoUrl} alt={shop.name} className="h-12 w-32 object-contain" />
+      </a>
+    ))}
+  </div>
+</div>
       </div>
     </div>
+    
   )
 }
 
