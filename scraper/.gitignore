@@ -8,6 +8,7 @@ venv/
 __pycache__/
 *.pyc
 *.pyo
+model_number_cache.json
 
 # Playwright browser binaries
 playwright-browsers/
