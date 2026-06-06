@@ -1,6 +1,7 @@
 import asyncio
 from playwright.async_api import async_playwright
 from utils.api_client import ApiClient
+from utils.llm_client import extract_model_number, normalize_brand
 
 SHOP_NAME = "Nanotek"
 SHOP_URL = "https://www.nanotek.lk"
@@ -16,7 +17,6 @@ CATEGORIES = {
         "https://www.nanotek.lk/category/storage-nas": ("ELECTRONICS", "STORAGE"),
         "https://www.nanotek.lk/category/desktop-workstations": ("ELECTRONICS", "DESKTOP"),
         "https://www.nanotek.lk/category/power-supply-ups-surge-protectors": ("ELECTRONICS", "POWER_SUPPLY_UPS"),
-
 }
 
 def clean_price(price_text):
@@ -43,7 +43,35 @@ async def scrape_category(page, category_url):
     print(f"Found {len(urls)} products")
     return list(set(urls))
 
-async def scrape_product(page, url):
+# def extract_model_number(name, sub_category):
+#     if sub_category == "LAPTOP":
+#         return None
+
+#     noise = r'(?!(?:DDR\d?|WIFI|ULTRA|ELITE|MAX|AX|ARGB|RGB|GEN|SERIES|EDITION|CORE)\b)'
+
+#     patterns = [
+#         r'RTX\s?\d+\s?(?:Ti|Super)?',
+#         r'GTX\s?\d+\s?(?:Ti|Super)?',
+#         r'Ryzen\s\d\s\d+\w*',
+#         r'Core\s[iI]\d-\d+\w*',
+#         r'[A-Z]\d{3,}[A-Z0-9]*(?:-[A-Z0-9]+)+',
+#         r'[A-Z]\d{3,}[A-Z0-9]*(?:\s' + noise + r'[A-Z]{2,}){1,2}',
+#         r'[A-Z]\d{3,}[A-Z0-9]+',
+#         r'[A-Z]{2,}\d+[A-Z]{2,}',
+#         r'[A-Z]\d+-[A-Z0-9]+',
+#         r'[A-Z]\d+\s[A-Z]{2,}',
+#     ]
+
+#     for pattern in patterns:
+#         match = re.search(pattern, name, re.IGNORECASE)
+#         if match:
+#             result = match.group().strip()
+#             result = re.sub(r'(RTX|GTX)(\d)', r'\1 \2', result, flags=re.IGNORECASE)
+#             return result
+
+#     return None
+
+async def scrape_product(page, url, sub_category):
     try:
         await page.goto(url, wait_until="networkidle", timeout=30000)
 
@@ -54,16 +82,15 @@ async def scrape_product(page, url):
         is_available_el = page.locator("span.ty-special-msg").first
         description_el = page.locator("div.ty-productPage-info.js-product-page-description-container").first
 
-        is_available = True  # default
+        is_available = True
         if await is_available_el.count() > 0:
             is_available_text = await is_available_el.text_content()
             is_available = "Out of Stock" not in is_available_text
 
         name = await name_el.text_content()
-        brand = name.split()[0] if name else None
+        brand = normalize_brand(name.split()[0] if name else None)
         price_text = await price_el.text_content()
         description = await description_el.text_content()
-
 
         prev_price_text = None
         if await prev_price_el.count() > 0:
@@ -74,6 +101,7 @@ async def scrape_product(page, url):
         name = name.strip() if name else None
         price = clean_price(price_text)
         previous_price = clean_price(prev_price_text)
+        model_number = extract_model_number(name, brand, sub_category)
 
         if not name or not price:
             print(f"⚠️ Skipping {url} — missing name or price")
@@ -83,6 +111,7 @@ async def scrape_product(page, url):
             "name": name,
             "brand": brand,
             "price": price,
+            "modelNumber": model_number,
             "previousPrice": previous_price,
             "imageUrl": image_url,
             "sourceUrl": url,
@@ -118,7 +147,7 @@ async def run_scraper():
                     page_num += 1
 
                 for product_url in all_urls:
-                    product = await scrape_product(page, product_url)
+                    product = await scrape_product(page, product_url, sub_category)
 
                     if product:
                         product["shopId"] = shop_id

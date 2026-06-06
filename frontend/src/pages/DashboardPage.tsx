@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { getProducts } from "../api/products";
 import type { Product, Shop } from "../types";
 import { getShops } from "../api/shops";
-import { data } from "react-router-dom";
 
 function DashboardPage() {
   const [products, setProducts] = useState<Product[]>([]);
