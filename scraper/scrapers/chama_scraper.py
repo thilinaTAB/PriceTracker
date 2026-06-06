@@ -2,14 +2,12 @@ import requests
 from bs4 import BeautifulSoup
 import json
 from utils.api_client import ApiClient
-from utils.llm_client import extract_model_number, normalize_brand
 
 SHOP_NAME = "Chama Computers"
 SHOP_URL = "https://www.chamacomputers.lk"
 SHOP_LOGO = "https://www.chamacomputers.lk/img/LOGO_White.png"
 
 CATEGORIES = {
-    "https://www.chamacomputers.lk/products/laptops": ("ELECTRONICS", "LAPTOP"),
     "https://www.chamacomputers.lk/products/processors": ("ELECTRONICS", "PROCESSOR"),
     "https://www.chamacomputers.lk/products/memory": ("ELECTRONICS", "RAM"),
     "https://www.chamacomputers.lk/products/thermal%20paste": ("ELECTRONICS", "OTHER_ELECTRONICS"),
@@ -19,6 +17,7 @@ CATEGORIES = {
     "https://www.chamacomputers.lk/products/storage": ("ELECTRONICS", "STORAGE"),
     "https://www.chamacomputers.lk/products/graphics%20cards": ("ELECTRONICS", "GRAPHICS_CARD"),
     "https://www.chamacomputers.lk/products/power%20supply": ("ELECTRONICS", "POWER_SUPPLY_UPS"),
+
 }
 
 HEADERS = {
@@ -46,35 +45,7 @@ def scrape_category_page(category_url, page_num):
     print(f"Found {len(product_links)} products")
     return list(set(product_links))
 
-# def extract_model_number(name, sub_category):
-#     if sub_category == "LAPTOP":
-#         return None
-
-#     noise = r'(?!(?:DDR\d?|WIFI|ULTRA|ELITE|MAX|AX|ARGB|RGB|GEN|SERIES|EDITION|CORE)\b)'
-
-#     patterns = [
-#         r'RTX\s?\d+\s?(?:Ti|Super)?',
-#         r'GTX\s?\d+\s?(?:Ti|Super)?',
-#         r'Ryzen\s\d\s\d+\w*',
-#         r'Core\s[iI]\d-\d+\w*',
-#         r'[A-Z]\d{3,}[A-Z0-9]*(?:-[A-Z0-9]+)+',
-#         r'[A-Z]\d{3,}[A-Z0-9]*(?:\s' + noise + r'[A-Z]{2,}){1,2}',
-#         r'[A-Z]\d{3,}[A-Z0-9]+',
-#         r'[A-Z]{2,}\d+[A-Z]{2,}',
-#         r'[A-Z]\d+-[A-Z0-9]+',
-#         r'[A-Z]\d+\s[A-Z]{2,}',
-#     ]
-
-#     for pattern in patterns:
-#         match = re.search(pattern, name, re.IGNORECASE)
-#         if match:
-#             result = match.group().strip()
-#             result = re.sub(r'(RTX|GTX)(\d)', r'\1 \2', result, flags=re.IGNORECASE)
-#             return result
-
-#     return None
-
-def scrape_product(product_path, sub_category):
+def scrape_product(product_path):
     try:
         url = f"https://www.chamacomputers.lk{product_path}"
         response = requests.get(url, headers=HEADERS)
@@ -96,23 +67,22 @@ def scrape_product(product_path, sub_category):
         brand = product_data.get("brand", {}).get("name")
         if brand == SHOP_NAME:
             brand = None
-        brand = normalize_brand(brand)
         sku = product_data.get("sku")
         image = product_data.get("image")
         offers = product_data.get("offers", {})
         price = clean_price(offers.get("price"))
         availability = offers.get("availability", "")
         is_available = "InStock" in availability
-        model_number = extract_model_number(name, brand, sub_category)
 
         if not name or not price:
             print(f"⚠️ Skipping {url} — missing name or price")
             return None
 
+
+
         return {
             "name": name,
             "brand": brand,
-            "modelNumber": model_number,
             "sku": sku,
             "price": price,
             "previousPrice": None,
@@ -146,7 +116,7 @@ def run_scraper():
         print(f"Total products found: {len(all_urls)}")
 
         for product_path in all_urls:
-            product = scrape_product(product_path, sub_category)
+            product = scrape_product(product_path)
 
             if product:
                 product["shopId"] = shop_id
