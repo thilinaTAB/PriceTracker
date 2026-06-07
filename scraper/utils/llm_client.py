@@ -45,11 +45,27 @@ Rules:
 - For GPUs: return format like RTX 5080, RTX 5070 Ti (no memory size)
 - For CPUs: return full name like Ryzen 5 5600X, i7-13700K
 - For laptops: return the alphanumeric model code only (e.g. FA506NCQ, FA2787NR, A13UDX). If only a generic processor name exists with no laptop model code, return null
-- Do NOT include: WIFI, DDR4, DDR5, D4, D5, AX, GHz, GB, connectivity specs, or generation info
-- Do NOT include brand name or series name (e.g. PRIME, TUF, ROG, PRO)
+- For monitors: extract the model code (e.g. 274QPF, S3241XO, L24-4C, P2725DE, AW3425DWM)
+- For monitor arms/mounts: extract the short model code (e.g. G45, F160, H100-FP, M150, SP5)
+- For laptops with series+generation codes: extract both (e.g. V15 G5, G8, P16, X16)
+- Do NOT include: WIFI, DDR4, DDR5, D4, D5, AX, GHz, GB, connectivity specs, generation info, screen size
+- Do NOT include brand name or series name (e.g. PRIME, TUF, ROG, PRO, MAG, UltraSharp)
 - If product has no specific model code (generic items, accessories, vague names), return null
 - "CoreBook", "IdeaPad", "ThinkBook" and similar are product series names, not model codes — return null if no alphanumeric code exists
-- Return ONLY the model number, nothing else"""
+- Return ONLY the model number, nothing else
+
+Examples:
+- "MSI MAG 274QPF E20 2560X1440 200HZ IPS" → 274QPF
+- "KOORUI 32" S3241XO 4K OLED 240Hz" → S3241XO
+- "LENOVO L24-4C 24" 144HZ FHD IPS MONITOR" → L24-4C
+- "Dell PRO P2725DE 100Hz IPS USB-C HUB" → P2725DE
+- "NORTH BAYOU G45 Full Motion Monitor Arm" → G45
+- "NORTH BAYOU H100-FP LAPTOP DESK ARM" → H100-FP
+- "LENOVO THINKBOOK 16 G8 IRL CORE 5" → G8
+- "Lenovo V15 G5 IRL Core i5 13th GEN" → V15 G5
+- "HONOR MagicBook X16 Intel i5 16GB" → X16
+- "Chuwi CoreBook i3 10TH GEN" → null
+- "Gaming Chair Black Edition" → null"""
                 },
                 {
                     "role": "user",
