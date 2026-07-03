@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import json
+import time
 from utils.api_client import ApiClient
 from utils.llm_client import extract_model_number, normalize_brand
 
@@ -9,7 +10,7 @@ SHOP_URL = "https://www.chamacomputers.lk"
 SHOP_LOGO = "https://www.chamacomputers.lk/img/LOGO_White.png"
 
 CATEGORIES = {
-    "https://www.chamacomputers.lk/products/laptops": ("ELECTRONICS", "LAPTOP"),
+    # "https://www.chamacomputers.lk/products/laptops": ("ELECTRONICS", "LAPTOP"),
     "https://www.chamacomputers.lk/products/processors": ("ELECTRONICS", "PROCESSOR"),
     "https://www.chamacomputers.lk/products/memory": ("ELECTRONICS", "RAM"),
     "https://www.chamacomputers.lk/products/thermal%20paste": ("ELECTRONICS", "OTHER_ELECTRONICS"),
@@ -22,7 +23,7 @@ CATEGORIES = {
 }
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 }
 
 def clean_price(price_text):
@@ -36,48 +37,24 @@ def clean_price(price_text):
 def scrape_category_page(category_url, page_num):
     print(f"📄 Scraping category: {category_url} page {page_num}")
     url = f"{category_url}?page={page_num}"
-    response = requests.get(url, headers=HEADERS)
-    soup = BeautifulSoup(response.text, "html.parser")
+    
+    try:
+        response = requests.get(url, headers=HEADERS, timeout=15)
+        soup = BeautifulSoup(response.text, "html.parser")
 
-    links = soup.find_all("a", href=True)
-    slug = category_url.split("/products/")[1]
-    product_links = [l["href"] for l in links if f"/products/{slug}/" in l["href"]]
+        links = soup.find_all("a", href=True)
+        slug = category_url.split("/products/")[1]
+        product_links = [l["href"] for l in links if f"/products/{slug}/" in l["href"]]
 
-    print(f"Found {len(product_links)} products")
-    return list(set(product_links))
-
-# def extract_model_number(name, sub_category):
-#     if sub_category == "LAPTOP":
-#         return None
-
-#     noise = r'(?!(?:DDR\d?|WIFI|ULTRA|ELITE|MAX|AX|ARGB|RGB|GEN|SERIES|EDITION|CORE)\b)'
-
-#     patterns = [
-#         r'RTX\s?\d+\s?(?:Ti|Super)?',
-#         r'GTX\s?\d+\s?(?:Ti|Super)?',
-#         r'Ryzen\s\d\s\d+\w*',
-#         r'Core\s[iI]\d-\d+\w*',
-#         r'[A-Z]\d{3,}[A-Z0-9]*(?:-[A-Z0-9]+)+',
-#         r'[A-Z]\d{3,}[A-Z0-9]*(?:\s' + noise + r'[A-Z]{2,}){1,2}',
-#         r'[A-Z]\d{3,}[A-Z0-9]+',
-#         r'[A-Z]{2,}\d+[A-Z]{2,}',
-#         r'[A-Z]\d+-[A-Z0-9]+',
-#         r'[A-Z]\d+\s[A-Z]{2,}',
-#     ]
-
-#     for pattern in patterns:
-#         match = re.search(pattern, name, re.IGNORECASE)
-#         if match:
-#             result = match.group().strip()
-#             result = re.sub(r'(RTX|GTX)(\d)', r'\1 \2', result, flags=re.IGNORECASE)
-#             return result
-
-#     return None
+        return list(set(product_links))
+    except Exception as e:
+        print(f"❌ Error indexing category layout grid: {e}")
+        return []
 
 def scrape_product(product_path, sub_category):
     try:
         url = f"https://www.chamacomputers.lk{product_path}"
-        response = requests.get(url, headers=HEADERS)
+        response = requests.get(url, headers=HEADERS, timeout=15)
         soup = BeautifulSoup(response.text, "html.parser")
 
         scripts = soup.find_all("script", type="application/ld+json")
@@ -96,6 +73,7 @@ def scrape_product(product_path, sub_category):
         brand = product_data.get("brand", {}).get("name")
         if brand == SHOP_NAME:
             brand = None
+            
         brand = normalize_brand(brand)
         sku = product_data.get("sku")
         image = product_data.get("image")
@@ -103,6 +81,8 @@ def scrape_product(product_path, sub_category):
         price = clean_price(offers.get("price"))
         availability = offers.get("availability", "")
         is_available = "InStock" in availability
+        
+        # Pulls clean extracted code from our local architecture
         model_number = extract_model_number(name, brand, sub_category)
 
         if not name or not price:
@@ -136,16 +116,23 @@ def run_scraper():
 
         while True:
             found_urls = scrape_category_page(category_url, page_num)
-
             if not found_urls:
                 break
-
-            all_urls.extend(found_urls)
+                
+            old_count = len(all_urls)
+            all_urls = list(set(all_urls + found_urls))
+            
+            # Infinite Loop Guard: Exit if no new unique links are found
+            if len(all_urls) == old_count:
+                break
+                
             page_num += 1
+            time.sleep(0.5)
 
-        print(f"Total products found: {len(all_urls)}")
+        print(f"Total products found for [{sub_category}]: {len(all_urls)}")
 
         for product_path in all_urls:
+            # FIXED: Now safely passes sub_category down
             product = scrape_product(product_path, sub_category)
 
             if product:
@@ -153,8 +140,7 @@ def run_scraper():
                 product["category"] = category
                 product["subCategory"] = sub_category
                 api.save_product(product)
+                
+            time.sleep(1)
 
     print("✅ Chama scraping complete")
-
-if __name__ == "__main__":
-    run_scraper()

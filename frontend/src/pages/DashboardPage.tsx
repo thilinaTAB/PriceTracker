@@ -1,74 +1,185 @@
-import { CATEGORY_IMAGES, ELECTRONICS_SUBCATEGORIES, formatCategoryName } from "../types/categories"
+import {
+  CATEGORY_IMAGES,
+  ELECTRONICS_SUBCATEGORIES,
+  formatCategoryName,
+} from "../types/categories";
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { getProducts } from "../api/products";
 import type { Product, Shop } from "../types";
 import { getShops } from "../api/shops";
 
-function DashboardPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  useEffect(() => {
-    getProducts().then(data => setProducts([...data].sort(() => Math.random() - 0.5)));
-  }, [])
-  const [selected, setSelected] = useState<string>('');
-
-  const [shops, setShops] = useState<Shop[]>([]);
-  useEffect(() =>{
-    getShops().then(data => setShops([...data].sort(() => Math.random() - 0.5)));
-  }, [])
-
-  return (
-    <div className="flex">
-      {/* Sidebar */}
-      <div className="w-40 bg-gray-800 text-white min-h-screen p-4">
-        <h2 className="font-bold text-lg mb-4">Categories</h2>
-        <ul>
-          <li
-  onClick={() => setSelected('')}
-  className={`p-3 rounded-lg cursor-pointer ${selected === '' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}>
-  All
-</li>
-          {ELECTRONICS_SUBCATEGORIES.map((subcategory) => (
-            <li
-            onClick={() => setSelected(subcategory)}
-              key={subcategory}
-             className={`p-3 rounded-lg cursor-pointer ${selected === subcategory ? 'bg-blue-900' : 'hover:bg-gray-700'}`}>
-              {formatCategoryName(subcategory)}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Main content */}
-      <div className="flex-1 p-6">
-        <h1 className="text-2xl font-bold mb-6">Featured Products</h1>
-        <div className="grid grid-cols-4 gap-4">
-  {(selected ? products.filter(p => p.subCategory === selected) : products.slice(0, 8)).map(product => (
-    <div key={product.id} className="bg-white rounded-lg shadow p-4">
-      <img
-        src={product.imageUrl ?? CATEGORY_IMAGES[product.subCategory] ?? ''}
-        alt={product.name}
-        className="w-full h-40 object-contain mb-3"
-      />
-      <p className="font-semibold text-sm">{product.name}</p>
-      <p className="text-blue-600 font-bold mt-1">Rs. {product.price}</p>
-      <p className="text-gray-500 text-xs">{product.shopName}</p>
-    </div>
-  ))}
-</div>
-<div className="mt-12">
-  <h2 className="text-lg font-bold mb-4">Our Shops</h2>
-  <div className="flex gap-6">
-    {shops.map(shop => (
-      <a key={shop.id} href={shop.websiteUrl} target="_blank">
-        <img src={shop.logoUrl} alt={shop.name} className="h-12 w-32 object-contain" />
-      </a>
-    ))}
-  </div>
-</div>
-      </div>
-    </div>
-    
-  )
+interface GroupedMasterProduct {
+  modelNumber: string;
+  brand: string;
+  subCategory: string;
+  imageUrl: string;
+  baseName: string;
+  listings: Product[];
 }
 
-export default DashboardPage
+function DashboardPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [shops, setShops] = useState<Shop[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+
+  useEffect(() => {
+    getProducts().then((data) => setProducts(data));
+    getShops().then((data) =>
+      setShops([...data].sort(() => Math.random() - 0.5)),
+    );
+  }, []);
+
+  // Groups raw products by their model number to prevent duplicates on screen
+  const getGroupedProducts = (): GroupedMasterProduct[] => {
+    const groups: { [key: string]: GroupedMasterProduct } = {};
+
+    const filtered = selectedCategory
+      ? products.filter((p) => p.subCategory === selectedCategory)
+      : products;
+
+    filtered.forEach((product) => {
+      if (!product.modelNumber) return;
+
+      const key = product.modelNumber.trim().toUpperCase();
+
+      if (!groups[key]) {
+        groups[key] = {
+          modelNumber: product.modelNumber,
+          brand: product.brand || "Generic",
+          subCategory: product.subCategory,
+          imageUrl: product.imageUrl || "",
+          baseName: product.name,
+          listings: [],
+        };
+      }
+      groups[key].listings.push(product);
+    });
+
+    return Object.values(groups);
+  };
+
+  const groupedProducts = getGroupedProducts();
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-gray-100 flex">
+      {/* SIDEBAR NAVIGATION */}
+      <aside className="w-64 bg-gray-800 border-r border-gray-700 p-6 hidden md:block">
+        <h2 className="text-sm font-bold uppercase text-gray-400 tracking-wider mb-4">
+          Categories
+        </h2>
+        <nav className="space-y-1">
+          <button
+            onClick={() => setSelectedCategory("")}
+            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${selectedCategory === "" ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-700"}`}
+          >
+            All Components
+          </button>
+          {ELECTRONICS_SUBCATEGORIES.map((sub) => (
+            <button
+              key={sub}
+              onClick={() => setSelectedCategory(sub)}
+              className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${selectedCategory === sub ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-700"}`}
+            >
+              {formatCategoryName(sub)}
+            </button>
+          ))}
+        </nav>
+      </aside>
+
+      {/* MAIN LAYOUT CANVAS */}
+      <div className="flex-1 p-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-extrabold tracking-tight text-white">
+            Hardware Price Watch
+          </h1>
+          <p className="text-gray-400 mt-1">
+            Real-time local components prices across Sri Lankan retailers
+          </p>
+        </div>
+
+        {/* Master Unique Components Grid View */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {groupedProducts.map((product) => {
+            // Compute real-time lowest deal value across available listing offers
+            const prices = product.listings
+              .map((l) => l.price)
+              .sort((a, b) => a - b);
+            const absoluteLowest = prices[0] || 0;
+            const vendorCount = product.listings.length;
+
+            return (
+              <Link
+                key={product.modelNumber}
+                to={`/product/${product.modelNumber}`}
+                className="bg-gray-800 rounded-xl border border-gray-700 p-5 shadow-lg flex flex-col justify-between hover:border-blue-500 hover:scale-[1.02] transition-all duration-200"
+              >
+                <div>
+                  <div className="w-full h-40 bg-gray-900 rounded-lg flex items-center justify-center p-4 mb-4">
+                    <img
+                      src={
+                        product.imageUrl ||
+                        CATEGORY_IMAGES[product.subCategory] ||
+                        undefined
+                      }
+                      alt={product.baseName}
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">
+                    {product.brand}
+                  </span>
+                  <h3 className="font-bold text-white text-sm line-clamp-2 mt-1 min-h-[40px]">
+                    {product.baseName}
+                  </h3>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-gray-700 flex justify-between items-end">
+                  <div>
+                    <p className="text-gray-500 text-2xs uppercase tracking-wider">
+                      Best Deal
+                    </p>
+                    <p className="text-emerald-400 font-black text-base mt-0.5">
+                      Rs. {absoluteLowest.toLocaleString()}
+                    </p>
+                  </div>
+                  <span className="text-xs bg-gray-700 text-gray-300 px-2.5 py-1 rounded-md border border-gray-600 font-medium">
+                    {vendorCount} {vendorCount === 1 ? "Offer" : "Offers"}
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* RETAILER FOOTER PANEL AREA - Solves the unused warning cleanly */}
+        {shops.length > 0 && (
+          <div className="mt-16 border-t border-gray-800 pt-8">
+            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
+              Monitored Vendors
+            </h2>
+            <div className="flex flex-wrap gap-4">
+              {shops.map((shop) => (
+                <a
+                  key={shop.id}
+                  href={shop.websiteUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-gray-800 border border-gray-700 hover:border-gray-600 p-3 rounded-xl transition-all duration-200 flex items-center justify-center"
+                >
+                  <img
+                    src={shop.logoUrl}
+                    alt={shop.name}
+                    className="h-6 w-24 object-contain brightness-105"
+                  />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default DashboardPage;

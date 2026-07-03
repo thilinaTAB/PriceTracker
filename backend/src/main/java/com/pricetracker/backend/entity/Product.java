@@ -57,6 +57,10 @@ public class Product {
     @JoinColumn(name = "shop_id", nullable = false)
     private Shop shop;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "master_product_id")
+    private MasterProduct masterProduct;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -73,4 +77,6 @@ public class Product {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+
 }
