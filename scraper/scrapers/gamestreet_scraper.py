@@ -11,7 +11,7 @@ SHOP_LOGO = "https://www.gamestreet.lk/images/logo.png"
 
 CATEGORIES = {
     # "https://www.gamestreet.lk/products.php?cat=MQ==&scat=Mzc=": ("ELECTRONICS", "LAPTOP"),  # Gaming Laptops
-    "https://www.gamestreet.lk/products.php?cat=MQ==&scat=Mzg=": ("ELECTRONICS", "LAPTOP"),  # Consumer Laptops
+    # "https://www.gamestreet.lk/products.php?cat=MQ==&scat=Mzg=": ("ELECTRONICS", "LAPTOP"),  # Consumer Laptops
     "https://www.gamestreet.lk/products.php?cat=Mg==&scat=MQ==": ("ELECTRONICS", "PROCESSOR"),
     "https://www.gamestreet.lk/products.php?cat=Mg==&scat=NQ==": ("ELECTRONICS", "POWER_SUPPLY_UPS"),
     "https://www.gamestreet.lk/products.php?cat=Mg==&scat=Mw==": ("ELECTRONICS", "RAM"),
