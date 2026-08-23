@@ -77,12 +77,25 @@ public class ProductServiceTest {
     void getAllProducts_ShouldReturnListOfProducts() {
         when(productRepository.findAll()).thenReturn(List.of(testProduct));
 
-        List<ProductResponseDTO> result = productService.getAllProducts();
+        List<ProductResponseDTO> result = productService.getAllProducts(null);
 
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals("Rice 5kg", result.getFirst().getName());
         verify(productRepository, times(1)).findAll();
+    }
+
+    @Test
+    void getAllProducts_WhenIsAvailableFilterProvided_ShouldReturnFilteredProducts() {
+        when(productRepository.findByIsAvailable(true)).thenReturn(List.of(testProduct));
+
+        List<ProductResponseDTO> result = productService.getAllProducts(true);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("Rice 5kg", result.getFirst().getName());
+        verify(productRepository, times(1)).findByIsAvailable(true);
+        verify(productRepository, times(0)).findAll();
     }
 
     @Test

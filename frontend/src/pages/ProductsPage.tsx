@@ -51,7 +51,7 @@ function DashboardPage() {
     useState<GroupedMasterProduct | null>(null);
 
   useEffect(() => {
-    getProducts().then((data) => setProducts(data));
+    getProducts(true).then((data) => setProducts(data));
     getShops().then((data) =>
       setShops([...data].sort(() => Math.random() - 0.5)),
     );

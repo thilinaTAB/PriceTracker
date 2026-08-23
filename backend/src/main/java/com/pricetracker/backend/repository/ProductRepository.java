@@ -16,6 +16,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByShop(Shop shop);
     Optional<Product> findBySourceUrl(String sourceUrl);
     List<Product> findByNameContainingIgnoreCase(String query);
+    List<Product> findByIsAvailable(Boolean isAvailable);
 
     @Query("SELECT DISTINCT p.brand FROM Product p WHERE p.brand IS NOT NULL")
     List<String> findAllDistinctBrands();
