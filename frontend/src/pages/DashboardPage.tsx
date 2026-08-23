@@ -3,7 +3,7 @@ import {
   ELECTRONICS_SUBCATEGORIES,
   formatCategoryName,
 } from "../types/categories";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { getProducts } from "../api/products";
 import type { Product, Shop } from "../types";
@@ -42,15 +42,13 @@ function DashboardPage() {
     setCurrentPage(1);
   }
 
-  // Groups raw products by their model number to prevent duplicates on screen
-  const getGroupedProducts = (): GroupedMasterProduct[] => {
+  const isHomeTab = selectedCategory === "";
+
+  // Groups raw products (all categories) by model number — base for the Home tab
+  const allGroupedProducts = useMemo((): GroupedMasterProduct[] => {
     const groups: { [key: string]: GroupedMasterProduct } = {};
 
-    const filtered = selectedCategory
-      ? products.filter((p) => p.subCategory === selectedCategory)
-      : products;
-
-    filtered.forEach((product) => {
+    products.forEach((product) => {
       if (!product.modelNumber) return;
 
       const key = product.modelNumber.trim().toUpperCase();
@@ -70,15 +68,57 @@ function DashboardPage() {
     });
 
     return Object.values(groups);
-  };
+  }, [products]);
 
-  const groupedProducts = getGroupedProducts();
+  // Groups raw products filtered to the selected category — base for category tabs
+  const categoryGroupedProducts = useMemo((): GroupedMasterProduct[] => {
+    if (!selectedCategory) return [];
 
-  const totalPages = Math.max(1, Math.ceil(groupedProducts.length / PAGE_SIZE));
+    const groups: { [key: string]: GroupedMasterProduct } = {};
+
+    products
+      .filter((p) => p.subCategory === selectedCategory)
+      .forEach((product) => {
+        if (!product.modelNumber) return;
+
+        const key = product.modelNumber.trim().toUpperCase();
+
+        if (!groups[key]) {
+          groups[key] = {
+            modelNumber: product.modelNumber,
+            brand: product.brand || "Generic",
+            subCategory: product.subCategory,
+            imageUrl: product.imageUrl || "",
+            baseName: product.name,
+            listings: [],
+          };
+        }
+
+        groups[key].listings.push(product);
+      });
+
+    return Object.values(groups);
+  }, [products, selectedCategory]);
+
+  // Home tab: single page of randomly picked, in-stock-only items.
+  // Memoized on the product list itself so it doesn't reshuffle on every render (e.g. page changes).
+  const homeItems = useMemo(() => {
+    const availableOnly = allGroupedProducts.filter((p) =>
+      p.listings.some((l) => l.isAvailable),
+    );
+    const shuffled = [...availableOnly].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, PAGE_SIZE);
+  }, [allGroupedProducts]);
+
+  const totalPages = isHomeTab
+    ? 1
+    : Math.max(1, Math.ceil(categoryGroupedProducts.length / PAGE_SIZE));
 
   const pageStart = (currentPage - 1) * PAGE_SIZE;
 
-  const pagedProducts = groupedProducts.slice(pageStart, pageStart + PAGE_SIZE);
+  const pagedProducts = isHomeTab
+    ? homeItems
+    : categoryGroupedProducts.slice(pageStart, pageStart + PAGE_SIZE);
 
   function goToPage(page: number) {
     const clamped = Math.min(Math.max(page, 1), totalPages);
@@ -108,7 +148,7 @@ function DashboardPage() {
                 : "text-gray-300 hover:bg-gray-700"
             }`}
           >
-            All Components
+            Home
           </button>
 
           {ELECTRONICS_SUBCATEGORIES.map((sub) => (
@@ -143,12 +183,18 @@ function DashboardPage() {
         <div className="grid w-full min-w-0 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {pagedProducts.map((product) => {
             // Compute real-time lowest deal value across available listing offers
-            const prices = product.listings
-              .map((l) => l.price)
-              .sort((a, b) => a - b);
+            const availableListings = product.listings.filter(
+              (l) => l.isAvailable,
+            );
+            const pricePool =
+              availableListings.length > 0
+                ? availableListings
+                : product.listings;
+            const prices = pricePool.map((l) => l.price).sort((a, b) => a - b);
 
             const absoluteLowest = prices[0] || 0;
             const vendorCount = product.listings.length;
+            const availableCount = availableListings.length;
 
             return (
               <Link
@@ -197,13 +243,19 @@ function DashboardPage() {
                     {vendorCount} {vendorCount === 1 ? "Offer" : "Offers"}
                   </span>
                 </div>
+
+                {availableCount === 0 && (
+                  <span className="mt-2 inline-block text-2xs font-bold text-red-400 bg-red-950/40 border border-red-800/60 px-2 py-1 rounded-md">
+                    Out of Stock
+                  </span>
+                )}
               </Link>
             );
           })}
         </div>
 
         {/* PAGINATION CONTROLS */}
-        {totalPages > 1 && (
+        {!isHomeTab && totalPages > 1 && (
           <div className="mt-8 flex items-center justify-center gap-2 flex-wrap">
             <button
               onClick={() => goToPage(currentPage - 1)}

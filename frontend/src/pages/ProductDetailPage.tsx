@@ -1,7 +1,11 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { getProducts } from "../api/products";
-import { getWishlist, addToWishlist, removeFromWishlist } from "../api/wishlist";
+import {
+  getWishlist,
+  addToWishlist,
+  removeFromWishlist,
+} from "../api/wishlist";
 import { useAuth } from "../context/useAuth";
 import type { Product } from "../types";
 import { Line } from "react-chartjs-2";
@@ -55,7 +59,9 @@ function ProductDetailPage() {
     if (masterProductId == null) return;
 
     getWishlist().then((items) => {
-      setIsWishlisted(items.some((item) => item.masterProductId === masterProductId));
+      setIsWishlisted(
+        items.some((item) => item.masterProductId === masterProductId),
+      );
     });
   }, [user, matchingOffers]);
 
@@ -83,8 +89,16 @@ function ProductDetailPage() {
 
   // Pick the first match to safely harvest static metadata (brand, image details, name string)
   const masterInfo = matchingOffers[0];
-  const sortedOffers = [...matchingOffers].sort((a, b) => a.price - b.price);
-  const bestPrice = sortedOffers[0].price;
+  // Available offers are sorted first (by price), out-of-stock offers pushed to the end
+  const sortedOffers = [...matchingOffers].sort((a, b) => {
+    if (a.isAvailable !== b.isAvailable) return a.isAvailable ? -1 : 1;
+    return a.price - b.price;
+  });
+  const availableOffers = sortedOffers.filter((o) => o.isAvailable);
+  const bestPrice =
+    availableOffers.length > 0
+      ? availableOffers[0].price
+      : sortedOffers[0].price;
 
   async function handleWishlistToggle() {
     if (!user) {
@@ -197,7 +211,13 @@ function ProductDetailPage() {
               {sortedOffers.map((offer, index) => (
                 <div
                   key={offer.id}
-                  className={`p-4 rounded-xl border flex items-center justify-between transition-all ${index === 0 ? "bg-blue-950/40 border-blue-500 shadow-md shadow-blue-500/5" : "bg-gray-800 border-gray-700"}`}
+                  className={`p-4 rounded-xl border flex items-center justify-between transition-all ${
+                    !offer.isAvailable
+                      ? "bg-gray-800/60 border-gray-700 opacity-60"
+                      : index === 0
+                        ? "bg-blue-950/40 border-blue-500 shadow-md shadow-blue-500/5"
+                        : "bg-gray-800 border-gray-700"
+                  }`}
                 >
                   <div>
                     <h3 className="font-bold text-white text-sm">
@@ -209,18 +229,24 @@ function ProductDetailPage() {
                   </div>
                   <div className="flex items-center gap-4">
                     <p
-                      className={`font-black text-lg ${index === 0 ? "text-blue-400" : "text-white"}`}
+                      className={`font-black text-lg ${index === 0 && offer.isAvailable ? "text-blue-400" : "text-white"}`}
                     >
                       Rs. {offer.price.toLocaleString()}
                     </p>
-                    <a
-                      href={offer.sourceUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={`text-xs font-bold px-4 py-2.5 rounded-lg transition-colors ${index === 0 ? "bg-blue-600 text-white hover:bg-blue-500" : "bg-gray-700 text-gray-200 hover:bg-gray-600"}`}
-                    >
-                      Buy Offer
-                    </a>
+                    {offer.isAvailable ? (
+                      <a
+                        href={offer.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={`text-xs font-bold px-4 py-2.5 rounded-lg transition-colors ${index === 0 ? "bg-blue-600 text-white hover:bg-blue-500" : "bg-gray-700 text-gray-200 hover:bg-gray-600"}`}
+                      >
+                        Buy Offer
+                      </a>
+                    ) : (
+                      <span className="text-xs font-bold px-4 py-2.5 rounded-lg bg-gray-900 text-gray-500 border border-gray-700 cursor-not-allowed whitespace-nowrap">
+                        Out of Stock
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}

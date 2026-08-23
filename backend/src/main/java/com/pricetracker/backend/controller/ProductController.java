@@ -22,8 +22,9 @@ public class ProductController {
     private final PriceHistoryService priceHistoryService;
 
     @GetMapping
-    public ResponseEntity<List<ProductResponseDTO>> getAllProducts() {
-        return ResponseEntity.ok(productService.getAllProducts());
+    public ResponseEntity<List<ProductResponseDTO>> getAllProducts(
+            @RequestParam(required = false) Boolean isAvailable) {
+        return ResponseEntity.ok(productService.getAllProducts(isAvailable));
     }
 
     @GetMapping("/{id}")

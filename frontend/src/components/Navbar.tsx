@@ -13,7 +13,7 @@ function Navbar() {
   return (
     <nav className="bg-gray-900 text-white px-6 py-4 flex justify-between items-center">
       <Link to="/" className="text-xl font-bold">
-        PriceTracker
+        PricePulse
       </Link>
       <div className="flex gap-4 items-center">
         {user ? (

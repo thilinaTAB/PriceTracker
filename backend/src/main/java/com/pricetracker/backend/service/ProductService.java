@@ -26,9 +26,12 @@ public class ProductService {
     private final ShopRepository shopRepository;
     private final PriceHistoryRepository priceHistoryRepository;
 
-    public List<ProductResponseDTO> getAllProducts() {
-        return productRepository.findAll()
-                .stream()
+    public List<ProductResponseDTO> getAllProducts(Boolean isAvailable) {
+        List<Product> products = (isAvailable != null)
+                ? productRepository.findByIsAvailable(isAvailable)
+                : productRepository.findAll();
+
+        return products.stream()
                 .map(this::convertToResponseDTO)
                 .collect(Collectors.toList());
     }
