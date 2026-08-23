@@ -8,24 +8,15 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
-public class ProductResponseDTO {
+public class WishlistResponseDTO {
     private Long id;
+    private Long masterProductId;
     private String name;
     private String brand;
     private String modelNumber;
-    private String sku;
-    private String description;
-    private BigDecimal price;
-    private BigDecimal previousPrice;
     private String imageUrl;
-    private String sourceUrl;
     private Category category;
     private SubCategory subCategory;
-    private Boolean isPromotion;
-    private Boolean isAvailable;
-    private Long shopId;
-    private String shopName;
-    private Long masterProductId;
+    private BigDecimal lowestPrice;
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }
