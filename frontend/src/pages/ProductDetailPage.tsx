@@ -1,6 +1,8 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { getProducts } from "../api/products";
+import { getWishlist, addToWishlist, removeFromWishlist } from "../api/wishlist";
+import { useAuth } from "../context/useAuth";
 import type { Product } from "../types";
 import { Line } from "react-chartjs-2";
 import {
@@ -26,8 +28,12 @@ ChartJS.register(
 
 function ProductDetailPage() {
   const { modelNumber } = useParams<{ modelNumber: string }>();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [matchingOffers, setMatchingOffers] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isWishlisted, setIsWishlisted] = useState<boolean>(false);
+  const [wishlistBusy, setWishlistBusy] = useState<boolean>(false);
 
   useEffect(() => {
     getProducts().then((data) => {
@@ -42,6 +48,16 @@ function ProductDetailPage() {
       setLoading(false);
     });
   }, [modelNumber]);
+
+  useEffect(() => {
+    if (!user || matchingOffers.length === 0) return;
+    const masterProductId = matchingOffers[0].masterProductId;
+    if (masterProductId == null) return;
+
+    getWishlist().then((items) => {
+      setIsWishlisted(items.some((item) => item.masterProductId === masterProductId));
+    });
+  }, [user, matchingOffers]);
 
   if (loading) {
     return (
@@ -69,6 +85,27 @@ function ProductDetailPage() {
   const masterInfo = matchingOffers[0];
   const sortedOffers = [...matchingOffers].sort((a, b) => a.price - b.price);
   const bestPrice = sortedOffers[0].price;
+
+  async function handleWishlistToggle() {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    if (masterInfo.masterProductId == null) return;
+
+    setWishlistBusy(true);
+    try {
+      if (isWishlisted) {
+        await removeFromWishlist(masterInfo.masterProductId);
+        setIsWishlisted(false);
+      } else {
+        await addToWishlist(masterInfo.masterProductId);
+        setIsWishlisted(true);
+      }
+    } finally {
+      setWishlistBusy(false);
+    }
+  }
 
   // Mock fluctuation array logic map mimicking historical data drops tracking
   const chartConfigData = {
@@ -114,12 +151,32 @@ function ProductDetailPage() {
             />
           </div>
           <div className="md:col-span-2 flex flex-col justify-center">
-            <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">
-              {masterInfo.brand}
-            </span>
-            <h1 className="text-3xl font-extrabold text-white mt-1 mb-2">
-              {masterInfo.name}
-            </h1>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">
+                  {masterInfo.brand}
+                </span>
+                <h1 className="text-3xl font-extrabold text-white mt-1 mb-2">
+                  {masterInfo.name}
+                </h1>
+              </div>
+              <button
+                onClick={handleWishlistToggle}
+                disabled={wishlistBusy || masterInfo.masterProductId == null}
+                title={
+                  masterInfo.masterProductId == null
+                    ? "This product hasn't been catalogued yet"
+                    : undefined
+                }
+                className={`text-xs font-bold px-4 py-2.5 rounded-lg transition-colors whitespace-nowrap disabled:opacity-40 ${
+                  isWishlisted
+                    ? "bg-red-600 text-white hover:bg-red-500"
+                    : "bg-gray-700 text-gray-200 hover:bg-gray-600"
+                }`}
+              >
+                {isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+              </button>
+            </div>
             <p className="text-gray-400 text-sm">
               Universal SKU Reference String:{" "}
               <span className="font-mono text-white bg-gray-900 px-2 py-0.5 rounded text-xs">

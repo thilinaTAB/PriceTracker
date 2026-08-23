@@ -149,6 +149,7 @@ public class ProductService {
         dto.setIsAvailable(product.getIsAvailable());
         dto.setShopId(product.getShop().getId());
         dto.setShopName(product.getShop().getName());
+        dto.setMasterProductId(product.getMasterProduct() != null ? product.getMasterProduct().getId() : null);
         dto.setCreatedAt(product.getCreatedAt());
         dto.setUpdatedAt(product.getUpdatedAt());
         return dto;

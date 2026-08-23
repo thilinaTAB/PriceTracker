@@ -18,6 +18,7 @@ function Navbar() {
       <div className="flex gap-4 items-center">
         {user ? (
           <>
+            <Link to="/wishlist">Wishlist</Link>
             <span>{user.firstName}</span>
             <button onClick={handleLogout}>Logout</button>
           </>

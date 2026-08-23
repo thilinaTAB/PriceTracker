@@ -18,17 +18,29 @@ interface GroupedMasterProduct {
   listings: Product[];
 }
 
+const PAGE_SIZE = 12;
+
 function DashboardPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [shops, setShops] = useState<Shop[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [prevCategory, setPrevCategory] = useState<string>(selectedCategory);
 
   useEffect(() => {
     getProducts().then((data) => setProducts(data));
+
     getShops().then((data) =>
       setShops([...data].sort(() => Math.random() - 0.5)),
     );
   }, []);
+
+  // Reset back to page 1 whenever the category filter changes.
+  // Adjusting state during render (not in an effect) avoids the extra render pass.
+  if (selectedCategory !== prevCategory) {
+    setPrevCategory(selectedCategory);
+    setCurrentPage(1);
+  }
 
   // Groups raw products by their model number to prevent duplicates on screen
   const getGroupedProducts = (): GroupedMasterProduct[] => {
@@ -53,6 +65,7 @@ function DashboardPage() {
           listings: [],
         };
       }
+
       groups[key].listings.push(product);
     });
 
@@ -61,25 +74,52 @@ function DashboardPage() {
 
   const groupedProducts = getGroupedProducts();
 
+  const totalPages = Math.max(1, Math.ceil(groupedProducts.length / PAGE_SIZE));
+
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+
+  const pagedProducts = groupedProducts.slice(pageStart, pageStart + PAGE_SIZE);
+
+  function goToPage(page: number) {
+    const clamped = Math.min(Math.max(page, 1), totalPages);
+
+    setCurrentPage(clamped);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-100 flex">
+    <div className="min-h-screen w-full bg-gray-900 text-gray-100 flex">
       {/* SIDEBAR NAVIGATION */}
-      <aside className="w-64 bg-gray-800 border-r border-gray-700 p-6 hidden md:block">
+      <aside className="w-64 flex-shrink-0 bg-gray-800 border-r border-gray-700 p-6 hidden md:block">
         <h2 className="text-sm font-bold uppercase text-gray-400 tracking-wider mb-4">
           Categories
         </h2>
+
         <nav className="space-y-1">
           <button
             onClick={() => setSelectedCategory("")}
-            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${selectedCategory === "" ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-700"}`}
+            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+              selectedCategory === ""
+                ? "bg-blue-600 text-white"
+                : "text-gray-300 hover:bg-gray-700"
+            }`}
           >
             All Components
           </button>
+
           {ELECTRONICS_SUBCATEGORIES.map((sub) => (
             <button
               key={sub}
               onClick={() => setSelectedCategory(sub)}
-              className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${selectedCategory === sub ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-700"}`}
+              className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                selectedCategory === sub
+                  ? "bg-blue-600 text-white"
+                  : "text-gray-300 hover:bg-gray-700"
+              }`}
             >
               {formatCategoryName(sub)}
             </button>
@@ -88,23 +128,25 @@ function DashboardPage() {
       </aside>
 
       {/* MAIN LAYOUT CANVAS */}
-      <div className="flex-1 p-8">
+      <main className="flex-1 min-w-0 p-8 overflow-hidden">
         <div className="mb-8">
           <h1 className="text-3xl font-extrabold tracking-tight text-white">
             Hardware Price Watch
           </h1>
+
           <p className="text-gray-400 mt-1">
             Real-time local components prices across Sri Lankan retailers
           </p>
         </div>
 
-        {/* Master Unique Components Grid View */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {groupedProducts.map((product) => {
+        {/* MASTER UNIQUE COMPONENTS GRID VIEW */}
+        <div className="grid w-full min-w-0 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {pagedProducts.map((product) => {
             // Compute real-time lowest deal value across available listing offers
             const prices = product.listings
               .map((l) => l.price)
               .sort((a, b) => a - b);
+
             const absoluteLowest = prices[0] || 0;
             const vendorCount = product.listings.length;
 
@@ -112,10 +154,11 @@ function DashboardPage() {
               <Link
                 key={product.modelNumber}
                 to={`/product/${product.modelNumber}`}
-                className="bg-gray-800 rounded-xl border border-gray-700 p-5 shadow-lg flex flex-col justify-between hover:border-blue-500 hover:scale-[1.02] transition-all duration-200"
+                className="min-w-0 w-full bg-gray-800 rounded-xl border border-gray-700 p-5 shadow-lg flex flex-col justify-between hover:border-blue-500 hover:scale-[1.02] transition-all duration-200"
               >
-                <div>
-                  <div className="w-full h-40 bg-gray-900 rounded-lg flex items-center justify-center p-4 mb-4">
+                <div className="min-w-0">
+                  {/* PRODUCT IMAGE */}
+                  <div className="w-full h-40 bg-gray-900 rounded-lg flex items-center justify-center p-4 mb-4 overflow-hidden">
                     <img
                       src={
                         product.imageUrl ||
@@ -126,24 +169,31 @@ function DashboardPage() {
                       className="max-h-full max-w-full object-contain"
                     />
                   </div>
-                  <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">
+
+                  {/* BRAND */}
+                  <span className="block max-w-full truncate text-xs font-bold text-blue-400 uppercase tracking-widest">
                     {product.brand}
                   </span>
-                  <h3 className="font-bold text-white text-sm line-clamp-2 mt-1 min-h-[40px]">
+
+                  {/* PRODUCT NAME */}
+                  <h3 className="font-bold text-white text-sm line-clamp-2 mt-1 min-h-[40px] break-words overflow-hidden">
                     {product.baseName}
                   </h3>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-gray-700 flex justify-between items-end">
-                  <div>
+                {/* PRICE / OFFER INFORMATION */}
+                <div className="mt-4 pt-4 border-t border-gray-700 flex justify-between items-end gap-3 min-w-0">
+                  <div className="min-w-0">
                     <p className="text-gray-500 text-2xs uppercase tracking-wider">
                       Best Deal
                     </p>
-                    <p className="text-emerald-400 font-black text-base mt-0.5">
+
+                    <p className="text-emerald-400 font-black text-base mt-0.5 whitespace-nowrap">
                       Rs. {absoluteLowest.toLocaleString()}
                     </p>
                   </div>
-                  <span className="text-xs bg-gray-700 text-gray-300 px-2.5 py-1 rounded-md border border-gray-600 font-medium">
+
+                  <span className="flex-shrink-0 text-xs bg-gray-700 text-gray-300 px-2.5 py-1 rounded-md border border-gray-600 font-medium whitespace-nowrap">
                     {vendorCount} {vendorCount === 1 ? "Offer" : "Offers"}
                   </span>
                 </div>
@@ -152,12 +202,48 @@ function DashboardPage() {
           })}
         </div>
 
-        {/* RETAILER FOOTER PANEL AREA - Solves the unused warning cleanly */}
+        {/* PAGINATION CONTROLS */}
+        {totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-center gap-2 flex-wrap">
+            <button
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-3 py-2 rounded-lg text-sm font-medium bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700 disabled:opacity-40 disabled:hover:bg-gray-800"
+            >
+              Prev
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => goToPage(page)}
+                className={`px-3 py-2 rounded-lg text-sm font-medium border ${
+                  page === currentPage
+                    ? "bg-blue-600 border-blue-600 text-white"
+                    : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+
+            <button
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 rounded-lg text-sm font-medium bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700 disabled:opacity-40 disabled:hover:bg-gray-800"
+            >
+              Next
+            </button>
+          </div>
+        )}
+
+        {/* RETAILER FOOTER PANEL AREA */}
         {shops.length > 0 && (
           <div className="mt-16 border-t border-gray-800 pt-8">
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
               Monitored Vendors
             </h2>
+
             <div className="flex flex-wrap gap-4">
               {shops.map((shop) => (
                 <a
@@ -177,7 +263,7 @@ function DashboardPage() {
             </div>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
