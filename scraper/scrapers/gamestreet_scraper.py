@@ -11,7 +11,7 @@ from utils.llm_client import (
 
 SHOP_NAME = "Game Street"
 SHOP_URL = "https://www.gamestreet.lk"
-SHOP_LOGO = "https://www.gamestreet.lk/images/logo.png"
+SHOP_LOGO = "https://www.gamestreet.lk/images/common/logo.png"
 
 CATEGORIES = {
     "https://www.gamestreet.lk/products.php?cat=Mg==&scat=MQ==": ("ELECTRONICS", "PROCESSOR"),

@@ -149,7 +149,7 @@ def _llm_extract(name, brand, sub_category):
             
         try:
             response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="openai/gpt-oss-120b",
                 max_tokens=20,
                 messages=[
                     {"role": "system", "content": _get_system_prompt_instruction()},
