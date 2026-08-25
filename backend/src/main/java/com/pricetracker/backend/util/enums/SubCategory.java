@@ -3,18 +3,15 @@ package com.pricetracker.backend.util.enums;
 public enum SubCategory {
 
     // Electronics
-    LAPTOP,
-    DESKTOP,
     MONITOR,
     PROCESSOR,
     GRAPHICS_CARD,
     MOTHERBOARD,
     RAM,
     STORAGE,
-    MOBILE,
-    TABLET,
     POWER_SUPPLY_UPS,
-    OTHER_ELECTRONICS,
+    CASING,
+    OTHER_COMPONENTS,
 
     // Grocery
     FRESH_PRODUCE,
