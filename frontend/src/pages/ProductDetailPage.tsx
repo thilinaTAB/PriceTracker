@@ -8,6 +8,7 @@ import {
 } from "../api/wishlist";
 import { useAuth } from "../context/useAuth";
 import type { Product } from "../types";
+import { CATEGORY_IMAGES } from "../types/categories";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -31,7 +32,7 @@ ChartJS.register(
 );
 
 function ProductDetailPage() {
-  const { modelNumber } = useParams<{ modelNumber: string }>();
+  const { masterProductId } = useParams<{ masterProductId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [matchingOffers, setMatchingOffers] = useState<Product[]>([]);
@@ -41,17 +42,16 @@ function ProductDetailPage() {
 
   useEffect(() => {
     getProducts().then((data) => {
-      // Isolates items matching this specific model parameter slug
+      // Isolates items belonging to this specific master product variant
       const filtered = data.filter(
         (p) =>
-          p.modelNumber &&
-          p.modelNumber.toUpperCase().trim() ===
-            modelNumber?.toUpperCase().trim(),
+          p.masterProductId != null &&
+          p.masterProductId === Number(masterProductId),
       );
       setMatchingOffers(filtered);
       setLoading(false);
     });
-  }, [modelNumber]);
+  }, [masterProductId]);
 
   useEffect(() => {
     if (!user || matchingOffers.length === 0) return;
@@ -87,8 +87,18 @@ function ProductDetailPage() {
     );
   }
 
-  // Pick the first match to safely harvest static metadata (brand, image details, name string)
+  // Pick the first match to safely harvest static metadata (brand, name string)
   const masterInfo = matchingOffers[0];
+  // Image is picked at random from whichever offers actually have one — don't rely
+  // on scrape order, since some shop scrapers (e.g. Chama) don't always capture an
+  // image while others do. Falls back to a generic category image if none exist at all.
+  const offerImageUrls = matchingOffers
+    .map((o) => o.imageUrl)
+    .filter((url): url is string => Boolean(url));
+  const bestImageUrl =
+    offerImageUrls.length > 0
+      ? offerImageUrls[0]
+      : CATEGORY_IMAGES[masterInfo.subCategory] || "";
   // Available offers are sorted first (by price), out-of-stock offers pushed to the end
   const sortedOffers = [...matchingOffers].sort((a, b) => {
     if (a.isAvailable !== b.isAvailable) return a.isAvailable ? -1 : 1;
@@ -159,7 +169,7 @@ function ProductDetailPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 bg-gray-800 rounded-2xl border border-gray-700 p-6 mb-8 shadow-xl">
           <div className="bg-gray-900 rounded-xl p-4 flex items-center justify-center">
             <img
-              src={masterInfo.imageUrl || ""}
+              src={bestImageUrl || ""}
               alt={masterInfo.name}
               className="max-h-56 object-contain"
             />
@@ -196,6 +206,14 @@ function ProductDetailPage() {
               <span className="font-mono text-white bg-gray-900 px-2 py-0.5 rounded text-xs">
                 {masterInfo.modelNumber}
               </span>
+              {masterInfo.variantValue && (
+                <>
+                  <span className="mx-2">•</span>
+                  <span className="font-mono text-white bg-gray-900 px-2 py-0.5 rounded text-xs">
+                    {masterInfo.variantValue}
+                  </span>
+                </>
+              )}
             </p>
           </div>
         </div>

@@ -5,7 +5,11 @@ from urllib.parse import urljoin
 from playwright.async_api import async_playwright, TimeoutError
 
 from utils.api_client import ApiClient
-from utils.llm_client import extract_model_number, normalize_brand
+from utils.llm_client import (
+    extract_model_number,
+    extract_variant_value,
+    normalize_brand
+)
 
 
 SHOP_NAME = "Nanotek"
@@ -20,6 +24,9 @@ CATEGORIES = {
     "https://www.nanotek.lk/category/memory-ram": ("ELECTRONICS", "RAM"),
     "https://www.nanotek.lk/category/storage-nas": ("ELECTRONICS", "STORAGE"),
     "https://www.nanotek.lk/category/power-supply-ups-surge-protectors": ("ELECTRONICS", "POWER_SUPPLY_UPS"),
+    "https://www.nanotek.lk/category/casings": ("ELECTRONICS", "CASING"),
+    "https://www.nanotek.lk/category/cooling-lighting": ("ELECTRONICS", "OTHER_COMPONENTS")
+
 }
 
 
@@ -301,11 +308,17 @@ async def scrape_product(page, url, sub_category):
             sub_category
         )
 
+        variant_value = extract_variant_value(
+            name,
+            sub_category
+)
+
         return {
 
             "name": name,
             "brand": brand,
             "modelNumber": model_number,
+            "variantValue": variant_value,
             "sku": sku,
             "price": price,
             "previousPrice": previous_price,

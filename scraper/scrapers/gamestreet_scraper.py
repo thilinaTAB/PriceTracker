@@ -3,7 +3,11 @@ from bs4 import BeautifulSoup
 import re
 import time
 from utils.api_client import ApiClient
-from utils.llm_client import extract_model_number, normalize_brand
+from utils.llm_client import (
+    extract_model_number,
+    extract_variant_value,
+    normalize_brand
+)
 
 SHOP_NAME = "Game Street"
 SHOP_URL = "https://www.gamestreet.lk"
@@ -17,7 +21,11 @@ CATEGORIES = {
     "https://www.gamestreet.lk/products.php?cat=Mg==&scat=MTE=": ("ELECTRONICS", "STORAGE"),       # HDDs
     "https://www.gamestreet.lk/products.php?cat=Mg==&scat=MTM=": ("ELECTRONICS", "STORAGE"),       # SSDs
     "https://www.gamestreet.lk/products.php?cat=Mg==&scat=Ng==": ("ELECTRONICS", "GRAPHICS_CARD"),
-    "https://www.gamestreet.lk/products.php?cat=Mg==&scat=OA==": ("ELECTRONICS", "MONITOR")        # Monitors
+    "https://www.gamestreet.lk/products.php?cat=Mg==&scat=OA==": ("ELECTRONICS", "MONITOR"),        # Monitors
+    "https://www.gamestreet.lk/products.php?cat=Mg==&scat=NA==": ("ELECTRONICS", "CASING"),            # Cases
+    "https://www.gamestreet.lk/products.php?cat=Mg==&scat=Nw==": ("ELECTRONICS", "OTHER_COMPONENTS"),  # Cooling
+    "https://www.gamestreet.lk/products.php?cat=NA==&scat=MjQ==": ("ELECTRONICS", "OTHER_COMPONENTS"),  # Thermal Paste
+
 }
 
 HEADERS = {
@@ -151,11 +159,13 @@ def scrape_product(url, sub_category):
 
         # Model number extraction engine sequence
         model_number = extract_model_number(raw_name, brand, sub_category)
+        variant_value = extract_variant_value(raw_name, sub_category)
 
         return {
             "name": raw_name,
             "brand": brand,
             "modelNumber": model_number,
+            "variantValue": variant_value,
             "sku": sku,
             "price": price,
             "previousPrice": previous_price,

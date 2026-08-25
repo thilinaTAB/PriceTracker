@@ -15,7 +15,10 @@ function App() {
         <Navbar></Navbar>
         <Routes>
           <Route path="/" element={<DashboardPage />} />
-          <Route path="/product/:modelNumber" element={<ProductDetailPage />} />
+          <Route
+            path="/product/:masterProductId"
+            element={<ProductDetailPage />}
+          />
           <Route path="/compare" element={<ComparePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />

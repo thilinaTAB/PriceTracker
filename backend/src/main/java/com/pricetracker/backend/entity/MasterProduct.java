@@ -23,6 +23,8 @@ public class MasterProduct {
 
     private String modelNumber;
 
+    private String variantValue;
+
     private String imageUrl;
 
     @Enumerated(EnumType.STRING)
