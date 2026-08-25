@@ -187,3 +187,49 @@ def extract_model_number(name, brand, sub_category):
     _save_cache(_cache)
 
     return result
+
+def extract_variant_value(name, sub_category):
+    """
+    Extract the product's primary variant/specification value.
+
+    Examples:
+    512GB, 1TB, 16GB, 32GB, 27-inch, 750W
+    """
+
+    if not name:
+        return None
+
+    # Storage / memory capacities
+    capacity_patterns = [
+        r'\b\d+(?:\.\d+)?\s?(?:TB|GB|MB)\b',
+        r'\b\d+(?:\.\d+)?\s?(?:T|G|M)B\b',
+    ]
+
+    # Screen sizes
+    if sub_category == "MONITOR":
+        screen_match = re.search(
+            r'\b\d+(?:\.\d+)?\s?(?:inch|inches|")',
+            name,
+            re.IGNORECASE
+        )
+        if screen_match:
+            return screen_match.group().replace(" ", "").lower()
+
+    # Power supply wattage
+    if sub_category == "POWER_SUPPLY_UPS":
+        watt_match = re.search(
+            r'\b\d+(?:\.\d+)?\s?W\b',
+            name,
+            re.IGNORECASE
+        )
+        if watt_match:
+            return watt_match.group().replace(" ", "").upper()
+
+    # General capacity detection
+    for pattern in capacity_patterns:
+        match = re.search(pattern, name, re.IGNORECASE)
+
+        if match:
+            return match.group().replace(" ", "").upper()
+
+    return None

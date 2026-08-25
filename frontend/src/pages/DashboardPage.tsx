@@ -10,7 +10,9 @@ import type { Product, Shop } from "../types";
 import { getShops } from "../api/shops";
 
 interface GroupedMasterProduct {
+  masterProductId: number;
   modelNumber: string;
+  variantValue: string | null;
   brand: string;
   subCategory: string;
   imageUrl: string;
@@ -19,6 +21,52 @@ interface GroupedMasterProduct {
 }
 
 const PAGE_SIZE = 12;
+
+// Groups raw product listings by master product and uses the first available
+// listing image as the group's representative image.
+function buildGroupedProducts(productList: Product[]): GroupedMasterProduct[] {
+  const groups: {
+    [key: string]: Omit<GroupedMasterProduct, "imageUrl"> & {
+      imageUrls: string[];
+    };
+  } = {};
+
+  productList.forEach((product) => {
+    if (!product.modelNumber) return;
+
+    const key =
+      product.masterProductId != null
+        ? String(product.masterProductId)
+        : `${product.modelNumber.trim().toUpperCase()}|${product.variantValue?.trim().toUpperCase() || ""}`;
+
+    if (!groups[key]) {
+      groups[key] = {
+        masterProductId: product.masterProductId ?? -1,
+        modelNumber: product.modelNumber,
+        variantValue: product.variantValue,
+        brand: product.brand || "Generic",
+        subCategory: product.subCategory,
+        baseName: product.name,
+        listings: [],
+        imageUrls: [],
+      };
+    }
+
+    if (product.imageUrl) {
+      groups[key].imageUrls.push(product.imageUrl);
+    }
+
+    groups[key].listings.push(product);
+  });
+
+  return Object.values(groups).map(({ imageUrls, ...group }) => ({
+    ...group,
+    imageUrl:
+      imageUrls.length > 0
+        ? imageUrls[0]
+        : CATEGORY_IMAGES[group.subCategory] || "",
+  }));
+}
 
 function DashboardPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -30,9 +78,7 @@ function DashboardPage() {
   useEffect(() => {
     getProducts().then((data) => setProducts(data));
 
-    getShops().then((data) =>
-      setShops([...data].sort(() => Math.random() - 0.5)),
-    );
+    getShops().then((data) => setShops(data));
   }, []);
 
   // Reset back to page 1 whenever the category filter changes.
@@ -45,70 +91,42 @@ function DashboardPage() {
   const isHomeTab = selectedCategory === "";
 
   // Groups raw products (all categories) by model number — base for the Home tab
-  const allGroupedProducts = useMemo((): GroupedMasterProduct[] => {
-    const groups: { [key: string]: GroupedMasterProduct } = {};
-
-    products.forEach((product) => {
-      if (!product.modelNumber) return;
-
-      const key = product.modelNumber.trim().toUpperCase();
-
-      if (!groups[key]) {
-        groups[key] = {
-          modelNumber: product.modelNumber,
-          brand: product.brand || "Generic",
-          subCategory: product.subCategory,
-          imageUrl: product.imageUrl || "",
-          baseName: product.name,
-          listings: [],
-        };
-      }
-
-      groups[key].listings.push(product);
-    });
-
-    return Object.values(groups);
-  }, [products]);
+  const allGroupedProducts = useMemo(
+    () => buildGroupedProducts(products),
+    [products],
+  );
 
   // Groups raw products filtered to the selected category — base for category tabs
-  const categoryGroupedProducts = useMemo((): GroupedMasterProduct[] => {
+  const categoryGroupedProducts = useMemo(() => {
     if (!selectedCategory) return [];
-
-    const groups: { [key: string]: GroupedMasterProduct } = {};
-
-    products
-      .filter((p) => p.subCategory === selectedCategory)
-      .forEach((product) => {
-        if (!product.modelNumber) return;
-
-        const key = product.modelNumber.trim().toUpperCase();
-
-        if (!groups[key]) {
-          groups[key] = {
-            modelNumber: product.modelNumber,
-            brand: product.brand || "Generic",
-            subCategory: product.subCategory,
-            imageUrl: product.imageUrl || "",
-            baseName: product.name,
-            listings: [],
-          };
-        }
-
-        groups[key].listings.push(product);
-      });
-
-    return Object.values(groups);
+    return buildGroupedProducts(
+      products.filter((p) => p.subCategory === selectedCategory),
+    );
   }, [products, selectedCategory]);
 
   // Home tab: single page of randomly picked, in-stock-only items.
   // Memoized on the product list itself so it doesn't reshuffle on every render (e.g. page changes).
+  const [randomOrder] = useState(() => Math.random());
+
   const homeItems = useMemo(() => {
     const availableOnly = allGroupedProducts.filter((p) =>
       p.listings.some((l) => l.isAvailable),
     );
-    const shuffled = [...availableOnly].sort(() => Math.random() - 0.5);
+
+    const shuffled = [...availableOnly];
+
+    let seed = Math.floor(randomOrder * 2147483647);
+
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      seed = (seed * 16807) % 2147483647;
+
+      const j = seed % (i + 1);
+
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
     return shuffled.slice(0, PAGE_SIZE);
-  }, [allGroupedProducts]);
+  }, [allGroupedProducts, randomOrder]);
 
   const totalPages = isHomeTab
     ? 1
@@ -198,8 +216,12 @@ function DashboardPage() {
 
             return (
               <Link
-                key={product.modelNumber}
-                to={`/product/${product.modelNumber}`}
+                key={`${product.masterProductId ?? "legacy"}-${product.modelNumber}-${product.variantValue ?? ""}`}
+                to={
+                  product.masterProductId != null
+                    ? `/product/${product.masterProductId}`
+                    : `/product/${product.modelNumber}`
+                }
                 className="min-w-0 w-full bg-gray-800 rounded-xl border border-gray-700 p-5 shadow-lg flex flex-col justify-between hover:border-blue-500 hover:scale-[1.02] transition-all duration-200"
               >
                 <div className="min-w-0">
@@ -225,6 +247,12 @@ function DashboardPage() {
                   <h3 className="font-bold text-white text-sm line-clamp-2 mt-1 min-h-[40px] break-words overflow-hidden">
                     {product.baseName}
                   </h3>
+
+                  {product.variantValue && (
+                    <span className="inline-block mt-2 text-xs font-semibold text-gray-300 bg-gray-700 px-2 py-1 rounded-md">
+                      {product.variantValue}
+                    </span>
+                  )}
                 </div>
 
                 {/* PRICE / OFFER INFORMATION */}

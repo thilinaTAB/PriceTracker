@@ -12,6 +12,7 @@ export interface Product {
   name: string;
   brand: string | null;
   modelNumber: string | null;
+  variantValue: string | null;
   sku: string | null;
   description: string | null;
   price: number;

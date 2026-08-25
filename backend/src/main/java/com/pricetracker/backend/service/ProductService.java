@@ -2,10 +2,12 @@ package com.pricetracker.backend.service;
 
 import com.pricetracker.backend.dto.request.ProductRequestDTO;
 import com.pricetracker.backend.dto.response.ProductResponseDTO;
+import com.pricetracker.backend.entity.MasterProduct;
 import com.pricetracker.backend.entity.PriceHistory;
 import com.pricetracker.backend.entity.Product;
 import com.pricetracker.backend.entity.Shop;
 import com.pricetracker.backend.exception.ResourceNotFoundException;
+import com.pricetracker.backend.repository.MasterProductRepository;
 import com.pricetracker.backend.repository.PriceHistoryRepository;
 import com.pricetracker.backend.repository.ProductRepository;
 import com.pricetracker.backend.repository.ShopRepository;
@@ -25,6 +27,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final ShopRepository shopRepository;
     private final PriceHistoryRepository priceHistoryRepository;
+    private final MasterProductRepository masterProductRepository;
 
     public List<ProductResponseDTO> getAllProducts(Boolean isAvailable) {
         List<Product> products = (isAvailable != null)
@@ -74,6 +77,8 @@ public class ProductService {
         existingProduct.setName(requestDTO.getName());
         existingProduct.setBrand(requestDTO.getBrand());
         existingProduct.setModelNumber(requestDTO.getModelNumber());
+        MasterProduct masterProduct = findOrCreateMasterProduct(requestDTO);
+        existingProduct.setMasterProduct(masterProduct);
         existingProduct.setSku(requestDTO.getSku());
         existingProduct.setDescription(requestDTO.getDescription());
         existingProduct.setPrice(requestDTO.getPrice());
@@ -140,6 +145,10 @@ public class ProductService {
         dto.setName(product.getName());
         dto.setBrand(product.getBrand());
         dto.setModelNumber(product.getModelNumber());
+        if (product.getMasterProduct() != null) {
+            dto.setVariantValue(product.getMasterProduct().getVariantValue());
+        }
+
         dto.setSku(product.getSku());
         dto.setDescription(product.getDescription());
         dto.setPrice(product.getPrice());
@@ -167,6 +176,10 @@ public class ProductService {
         product.setName(dto.getName());
         product.setBrand(dto.getBrand());
         product.setModelNumber(dto.getModelNumber());
+
+        MasterProduct masterProduct = findOrCreateMasterProduct(dto);
+        product.setMasterProduct(masterProduct);
+
         product.setSku(dto.getSku());
         product.setDescription(dto.getDescription());
         product.setPrice(dto.getPrice());
@@ -179,5 +192,50 @@ public class ProductService {
         product.setIsAvailable(dto.getIsAvailable());
         product.setShop(shop);
         return product;
+    }
+
+    private MasterProduct findOrCreateMasterProduct(ProductRequestDTO dto) {
+
+        String brand = dto.getBrand();
+        String modelNumber = dto.getModelNumber();
+        String variantValue = dto.getVariantValue();
+
+        Optional<MasterProduct> existingMasterProduct;
+
+        if (variantValue == null || variantValue.isBlank()) {
+
+            existingMasterProduct =
+                    masterProductRepository
+                            .findByBrandIgnoreCaseAndModelNumberIgnoreCaseAndVariantValueIsNull(
+                                    brand,
+                                    modelNumber
+                            );
+
+        } else {
+
+            existingMasterProduct =
+                    masterProductRepository
+                            .findByBrandIgnoreCaseAndModelNumberIgnoreCaseAndVariantValueIgnoreCase(
+                                    brand,
+                                    modelNumber,
+                                    variantValue
+                            );
+        }
+
+        if (existingMasterProduct.isPresent()) {
+            return existingMasterProduct.get();
+        }
+
+        MasterProduct masterProduct = new MasterProduct();
+
+        masterProduct.setName(dto.getName());
+        masterProduct.setBrand(brand);
+        masterProduct.setModelNumber(modelNumber);
+        masterProduct.setVariantValue(variantValue);
+        masterProduct.setImageUrl(dto.getImageUrl());
+        masterProduct.setCategory(dto.getCategory());
+        masterProduct.setSubCategory(dto.getSubCategory());
+
+        return masterProductRepository.save(masterProduct);
     }
 }

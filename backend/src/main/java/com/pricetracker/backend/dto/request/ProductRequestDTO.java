@@ -19,6 +19,8 @@ public class ProductRequestDTO {
 
     private String modelNumber;
 
+    private String variantValue;
+
     private String sku;
 
     private String description;

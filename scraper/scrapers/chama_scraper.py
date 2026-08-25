@@ -3,14 +3,18 @@ from bs4 import BeautifulSoup
 import json
 import time
 from utils.api_client import ApiClient
-from utils.llm_client import extract_model_number, normalize_brand
+from utils.llm_client import (
+    extract_model_number,
+    extract_variant_value,
+    normalize_brand
+)
 
 SHOP_NAME = "Chama Computers"
 SHOP_URL = "https://www.chamacomputers.lk"
 SHOP_LOGO = "https://www.chamacomputers.lk/img/LOGO_White.png"
 
 CATEGORIES = {
-    # "https://www.chamacomputers.lk/products/laptops": ("ELECTRONICS", "LAPTOP"),
+
     "https://www.chamacomputers.lk/products/processors": ("ELECTRONICS", "PROCESSOR"),
     "https://www.chamacomputers.lk/products/memory": ("ELECTRONICS", "RAM"),
     "https://www.chamacomputers.lk/products/thermal%20paste": ("ELECTRONICS", "OTHER_ELECTRONICS"),
@@ -20,6 +24,9 @@ CATEGORIES = {
     "https://www.chamacomputers.lk/products/storage": ("ELECTRONICS", "STORAGE"),
     "https://www.chamacomputers.lk/products/graphics%20cards": ("ELECTRONICS", "GRAPHICS_CARD"),
     "https://www.chamacomputers.lk/products/power%20supply": ("ELECTRONICS", "POWER_SUPPLY_UPS"),
+    "https://www.chamacomputers.lk/products/pc%20cases": ("ELECTRONICS", "CASING"),
+    "https://www.chamacomputers.lk/products/coolers": ("ELECTRONICS", "OTHER_COMPONENTS"),
+
 }
 
 HEADERS = {
@@ -84,6 +91,7 @@ def scrape_product(product_path, sub_category):
         
         # Pulls clean extracted code from our local architecture
         model_number = extract_model_number(name, brand, sub_category)
+        variant_value = extract_variant_value(name, sub_category)
 
         if not name or not price:
             print(f"⚠️ Skipping {url} — missing name or price")
@@ -93,6 +101,7 @@ def scrape_product(product_path, sub_category):
             "name": name,
             "brand": brand,
             "modelNumber": model_number,
+            "variantValue": variant_value,
             "sku": sku,
             "price": price,
             "previousPrice": None,
