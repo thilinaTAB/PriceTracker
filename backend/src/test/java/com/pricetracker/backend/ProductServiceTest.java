@@ -75,10 +75,10 @@ public class ProductServiceTest {
         // -------------------------
         testProduct = new Product();
         testProduct.setId(1L);
-        testProduct.setName("Rice 5kg");
+        testProduct.setName("Corsair RM1200x Shift 80+ GOLD Fully Modular ATX 3.0 & PCIe 5.0");
         testProduct.setBrand("Generic");
-        testProduct.setModelNumber("RICE-5KG");
-        testProduct.setDescription("Basmati rice");
+        testProduct.setModelNumber("MN-001");
+        testProduct.setDescription("Corsair");
         testProduct.setPrice(BigDecimal.valueOf(500));
         testProduct.setPreviousPrice(BigDecimal.valueOf(550));
         testProduct.setImageUrl("https://www.keells.com/rice.png");
