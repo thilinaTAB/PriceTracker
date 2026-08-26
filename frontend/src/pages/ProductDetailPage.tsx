@@ -45,7 +45,21 @@ function ProductDetailPage() {
 
   const [wishlistBusy, setWishlistBusy] = useState<boolean>(false);
 
-  const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([]);
+  /*
+   * Price history is stored separately for
+   * every retailer Product.
+   *
+   * Example:
+   *
+   * {
+   *   101: [...Nanotek history],
+   *   205: [...Chama history],
+   *   312: [...Another shop history]
+   * }
+   */
+  const [priceHistories, setPriceHistories] = useState<
+    Record<number, PriceHistory[]>
+  >({});
 
   const [priceHistoryLoading, setPriceHistoryLoading] =
     useState<boolean>(false);
@@ -53,13 +67,19 @@ function ProductDetailPage() {
   const [priceHistoryError, setPriceHistoryError] = useState<boolean>(false);
 
   /*
-   * Load all product offers belonging to this master product.
+   * Stable chart timestamp.
    *
-   * This is your existing implementation.
+   * We capture this inside an effect rather than
+   * calling Date.now() during render.
+   */
+  const [chartCurrentTime, setChartCurrentTime] = useState<number>(0);
+
+  /*
+   * Load all product offers belonging to
+   * this master product.
    */
   useEffect(() => {
     getProducts().then((data) => {
-      // Isolates items belonging to this specific master product variant
       const filtered = data.filter(
         (p) =>
           p.masterProductId != null &&
@@ -75,78 +95,94 @@ function ProductDetailPage() {
    * Existing wishlist loading.
    */
   useEffect(() => {
-    if (!user || matchingOffers.length === 0) return;
+    if (!user || matchingOffers.length === 0) {
+      return;
+    }
 
-    const masterProductId = matchingOffers[0].masterProductId;
+    const currentMasterProductId = matchingOffers[0].masterProductId;
 
-    if (masterProductId == null) return;
+    if (currentMasterProductId == null) {
+      return;
+    }
 
     getWishlist().then((items) => {
       setIsWishlisted(
-        items.some((item) => item.masterProductId === masterProductId),
+        items.some((item) => item.masterProductId === currentMasterProductId),
       );
     });
   }, [user, matchingOffers]);
 
   /*
-   * REAL PRICE HISTORY
-   *
-   * IMPORTANT:
-   * React hooks must always run in the same order.
-   * Therefore this useEffect is intentionally placed
-   * BEFORE the loading / empty-result early returns.
-   *
-   * Price history belongs to a Product (retailer offer),
-   * not directly to the MasterProduct.
-   *
-   * We therefore select the cheapest available retailer
-   * offer and request the history for that real Product ID.
+   * Load price history for EVERY retailer.
    */
   useEffect(() => {
     let cancelled = false;
 
-    async function loadPriceHistory() {
+    async function loadPriceHistories() {
       if (matchingOffers.length === 0) {
-        setPriceHistory([]);
+        setPriceHistories({});
         setPriceHistoryLoading(false);
         setPriceHistoryError(false);
-        return;
-      }
-
-      /*
-       * Use the same availability + price ordering
-       * used by the product page.
-       */
-      const sortedOffers = [...matchingOffers].sort((a, b) => {
-        if (a.isAvailable !== b.isAvailable) {
-          return a.isAvailable ? -1 : 1;
-        }
-
-        return a.price - b.price;
-      });
-
-      const historyProduct = sortedOffers[0];
-
-      if (!historyProduct?.id) {
-        setPriceHistory([]);
-        setPriceHistoryLoading(false);
         return;
       }
 
       setPriceHistoryLoading(true);
       setPriceHistoryError(false);
 
+      /*
+       * Capture the current chart timestamp
+       * inside the effect.
+       *
+       * This avoids calling Date.now()
+       * during React render.
+       */
+      const currentTime = Date.now();
+
+      setChartCurrentTime(currentTime);
+
       try {
-        const history = await getPriceHistory(historyProduct.id);
+        const results = await Promise.all(
+          matchingOffers.map(async (offer) => {
+            try {
+              const history = await getPriceHistory(offer.id);
+
+              return {
+                productId: offer.id,
+                history,
+              };
+            } catch (error) {
+              /*
+               * If one retailer's history
+               * fails, the other retailers
+               * can still appear.
+               */
+              console.error(
+                `Failed to load price history for ${offer.shopName} (${offer.id}):`,
+                error,
+              );
+
+              return {
+                productId: offer.id,
+                history: [],
+              };
+            }
+          }),
+        );
 
         if (!cancelled) {
-          setPriceHistory(history);
+          const historyMap: Record<number, PriceHistory[]> = {};
+
+          results.forEach(({ productId, history }) => {
+            historyMap[productId] = history;
+          });
+
+          setPriceHistories(historyMap);
         }
       } catch (error) {
-        console.error("Failed to load price history:", error);
+        console.error("Failed to load retailer price histories:", error);
 
         if (!cancelled) {
-          setPriceHistory([]);
+          setPriceHistories({});
           setPriceHistoryError(true);
         }
       } finally {
@@ -156,7 +192,7 @@ function ProductDetailPage() {
       }
     }
 
-    loadPriceHistory();
+    loadPriceHistories();
 
     return () => {
       cancelled = true;
@@ -164,9 +200,9 @@ function ProductDetailPage() {
   }, [matchingOffers]);
 
   /*
-   * Early loading return.
+   * Loading state.
    *
-   * All hooks are already declared above this point.
+   * All hooks are already declared above.
    */
   if (loading) {
     return (
@@ -177,9 +213,7 @@ function ProductDetailPage() {
   }
 
   /*
-   * Early empty-result return.
-   *
-   * All hooks are already declared above this point.
+   * Empty result state.
    */
   if (matchingOffers.length === 0) {
     return (
@@ -196,14 +230,14 @@ function ProductDetailPage() {
     );
   }
 
-  // Pick the first match to safely harvest static metadata
-  // (brand, name string)
+  /*
+   * Master product information.
+   */
   const masterInfo = matchingOffers[0];
 
-  // Image is picked at random from whichever offers actually have one —
-  // don't rely on scrape order, since some shop scrapers (e.g. Chama)
-  // don't always capture an image while others do.
-  // Falls back to a generic category image if none exist at all.
+  /*
+   * Product image.
+   */
   const offerImageUrls = matchingOffers
     .map((o) => o.imageUrl)
     .filter((url): url is string => Boolean(url));
@@ -213,8 +247,10 @@ function ProductDetailPage() {
       ? offerImageUrls[0]
       : CATEGORY_IMAGES[masterInfo.subCategory] || "";
 
-  // Available offers are sorted first (by price),
-  // out-of-stock offers pushed to the end.
+  /*
+   * Available offers are sorted first.
+   * Then lowest price first.
+   */
   const sortedOffers = [...matchingOffers].sort((a, b) => {
     if (a.isAvailable !== b.isAvailable) {
       return a.isAvailable ? -1 : 1;
@@ -224,95 +260,173 @@ function ProductDetailPage() {
   });
 
   /*
-   * The same Product selected for the real history request.
+   * --------------------------------------------------
+   * MULTI-RETAILER PRICE HISTORY
+   * --------------------------------------------------
+   */
+
+  const chartColors = [
+    "#2563eb", // Blue
+    "#16a34a", // Green
+    "#f97316", // Orange
+    "#a855f7", // Purple
+    "#e11d48", // Red
+    "#0891b2", // Cyan
+    "#ca8a04", // Yellow
+    "#64748b", // Gray
+  ];
+
+  /*
+   * Seven-day visual starting point for
+   * retailers without historical data.
    *
-   * sortedOffers already puts available products first,
-   * then sorts by price, so the first offer is the
-   * cheapest available retailer.
+   * The PRICE is 0.
+   * The X position is simply before the
+   * current point so the curve remains visible.
    */
-  const historyProduct = sortedOffers[0];
+  const previewStartTime = chartCurrentTime - 7 * 24 * 60 * 60 * 1000;
 
   /*
-   * Sort real historical records chronologically.
+   * Create one Chart.js dataset
+   * for every retailer.
    */
-  const sortedPriceHistory = [...priceHistory].sort(
-    (a, b) =>
-      new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime(),
-  );
+  const retailerDatasets = sortedOffers.map((offer, shopIndex) => {
+    const history = priceHistories[offer.id] || [];
 
-  /*
-   * Convert the real recorded timestamps into chart labels.
-   */
-  const historyLabels = sortedPriceHistory.map((history) =>
-    new Date(history.recordedAt).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-    }),
-  );
+    /*
+     * Sort history chronologically.
+     */
+    const sortedHistory = [...history].sort(
+      (a, b) =>
+        new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime(),
+    );
 
-  /*
-   * Extract the actual historical prices.
-   */
-  const historyPrices = sortedPriceHistory.map((history) => history.price);
+    const color = chartColors[shopIndex % chartColors.length];
 
-  /*
-   * The backend records the previous price when a price
-   * changes. Therefore the current Product price may not
-   * yet exist inside price_history.
-   *
-   * Add the current real price as the final chart point.
-   */
-  const hasRealHistory = sortedPriceHistory.length > 0;
+    /*
+     * --------------------------------------------
+     * REAL HISTORY EXISTS
+     * --------------------------------------------
+     */
+    if (sortedHistory.length > 0) {
+      const historyPoints = sortedHistory.map((item) => ({
+        x: new Date(item.recordedAt).getTime(),
 
-  const chartLabels = hasRealHistory
-    ? [...historyLabels, "Current"]
-    : ["", "", "Current"];
+        y: item.price,
+      }));
 
-  const chartPrices = hasRealHistory
-    ? [...historyPrices, historyProduct.price]
-    : [0, historyProduct.price];
+      /*
+       * Current actual price is the final point.
+       */
+      historyPoints.push({
+        x: chartCurrentTime,
+        y: offer.price,
+      });
 
-  /*
-   * REAL chart data.
-   *
-   * There is NO bestPrice * 1.07,
-   * bestPrice * 1.04, etc. anymore.
-   */
-  const chartConfigData = {
-    labels: chartLabels,
+      return {
+        label: offer.shopName || "Partner Retailer",
 
-    datasets: [
-      {
-        label: "Market Price (Rs.)",
+        data: historyPoints,
 
-        data: chartPrices,
+        borderColor: color,
 
-        borderColor: "#2563eb",
+        backgroundColor: "transparent",
 
-        backgroundColor: "rgba(37, 99, 235, 0.1)",
+        borderWidth: 2,
 
         tension: 0.4,
 
         pointBackgroundColor: "#ffffff",
 
-        pointBorderColor: "#2563eb",
+        pointBorderColor: color,
 
-        pointRadius: 4,
+        pointRadius: 3,
 
         pointHoverRadius: 6,
 
-        fill: true,
-      },
-    ],
+        fill: false,
+      };
+    }
+
+    /*
+     * --------------------------------------------
+     * NO REAL HISTORY
+     * --------------------------------------------
+     *
+     * Exactly TWO data points:
+     *
+     *     0
+     *     ↓
+     *     current real price
+     *
+     * The curve between them is generated
+     * by Chart.js tension.
+     */
+    return {
+      label: offer.shopName || "Partner Retailer",
+
+      data: [
+        {
+          x: previewStartTime,
+          y: 0,
+        },
+        {
+          x: chartCurrentTime,
+          y: offer.price,
+        },
+      ],
+
+      borderColor: color,
+
+      backgroundColor: "transparent",
+
+      borderWidth: 2,
+
+      tension: 0.4,
+
+      pointBackgroundColor: "#ffffff",
+
+      pointBorderColor: color,
+
+      /*
+       * Hide the 0 point visually.
+       * Show only the current price point.
+       */
+      pointRadius: [0, 4],
+
+      pointHoverRadius: 6,
+
+      fill: false,
+    };
+  });
+
+  /*
+   * Check whether any retailer has
+   * real historical records.
+   */
+  const hasAnyRealHistory = Object.values(priceHistories).some(
+    (history) => history.length > 0,
+  );
+
+  /*
+   * Chart configuration.
+   */
+  const chartConfigData = {
+    datasets: retailerDatasets,
   };
 
+  /*
+   * Wishlist toggle.
+   */
   async function handleWishlistToggle() {
     if (!user) {
       navigate("/login");
       return;
     }
 
-    if (masterInfo.masterProductId == null) return;
+    if (masterInfo.masterProductId == null) {
+      return;
+    }
 
     setWishlistBusy(true);
 
@@ -334,7 +448,7 @@ function ProductDetailPage() {
   return (
     <div className="bg-gray-900 min-h-screen text-gray-100 p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Back Link anchor */}
+        {/* Back Link */}
         <Link
           to="/"
           className="text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors mb-6 inline-block"
@@ -342,7 +456,7 @@ function ProductDetailPage() {
           ← Back to Catalog Dashboard
         </Link>
 
-        {/* Master Showcase Row Panel */}
+        {/* Master Showcase */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 bg-gray-800 rounded-2xl border border-gray-700 p-6 mb-8 shadow-xl">
           <div className="bg-gray-900 rounded-xl p-4 flex items-center justify-center">
             <img
@@ -400,9 +514,9 @@ function ProductDetailPage() {
           </div>
         </div>
 
-        {/* Dynamic Splits Dashboard Container Layout */}
+        {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          {/* Marketplace Comparison Cards (3 Columns Spanning Area) */}
+          {/* Retailer Offers */}
           <div className="lg:col-span-3">
             <h2 className="text-lg font-bold mb-4 text-white">
               Available Sri Lankan Retailer Offers
@@ -465,18 +579,18 @@ function ProductDetailPage() {
             </div>
           </div>
 
-          {/* Price Tracking Graph Canvas Panel (2 Columns Spanning Area) */}
+          {/* Price History Graph */}
           <div className="lg:col-span-2 bg-gray-800 border border-gray-700 rounded-xl p-5 flex flex-col justify-between h-80">
             <div>
               <h2 className="text-lg font-bold text-white">
-                {hasRealHistory
+                {hasAnyRealHistory
                   ? "Price History Metrics"
                   : "Price Monitoring Preview"}
               </h2>
 
               <p className="text-xs text-gray-400 mb-4">
-                {hasRealHistory
-                  ? "Historical price changes for the current best retailer offer"
+                {hasAnyRealHistory
+                  ? "Historical price changes across retailers"
                   : "Price trend visualization while PricePulse begins monitoring this product"}
               </p>
             </div>
@@ -484,7 +598,7 @@ function ProductDetailPage() {
             <div className="flex-1 min-h-0">
               {priceHistoryLoading ? (
                 <div className="h-full flex items-center justify-center text-sm text-gray-500">
-                  Loading price history...
+                  Loading retailer price histories...
                 </div>
               ) : priceHistoryError ? (
                 <div className="h-full flex items-center justify-center text-sm text-gray-500 text-center">
@@ -495,23 +609,81 @@ function ProductDetailPage() {
                   data={chartConfigData}
                   options={{
                     responsive: true,
+
                     maintainAspectRatio: false,
 
+                    interaction: {
+                      mode: "nearest",
+                      intersect: false,
+                    },
+
                     plugins: {
+                      /*
+                       * Show each retailer.
+                       */
                       legend: {
-                        display: false,
+                        display: true,
+
+                        position: "bottom",
+
+                        labels: {
+                          color: "#d1d5db",
+
+                          boxWidth: 12,
+
+                          boxHeight: 12,
+
+                          padding: 10,
+
+                          font: {
+                            size: 10,
+                          },
+                        },
                       },
 
                       tooltip: {
                         callbacks: {
                           label: (context) =>
-                            `Rs. ${Number(context.parsed.y).toLocaleString()}`,
+                            `${context.dataset.label}: Rs. ${Number(
+                              context.parsed.y,
+                            ).toLocaleString()}`,
+
+                          title: (items) => {
+                            if (items.length === 0) {
+                              return "";
+                            }
+
+                            const timestamp = Number(items[0].parsed.x);
+
+                            /*
+                             * Preview starting point.
+                             */
+                            if (timestamp === previewStartTime) {
+                              return "Start";
+                            }
+
+                            return new Date(timestamp).toLocaleDateString(
+                              "en-GB",
+                              {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              },
+                            );
+                          },
                         },
                       },
                     },
 
                     scales: {
+                      /*
+                       * Timestamp-based linear X-axis.
+                       *
+                       * No date adapter package required.
+                       */
                       x: {
+                        type: "linear" as const,
+
                         grid: {
                           display: false,
                         },
@@ -522,10 +694,30 @@ function ProductDetailPage() {
                           font: {
                             size: 10,
                           },
+
+                          maxTicksLimit: 5,
+
+                          callback: (value) => {
+                            const timestamp = Number(value);
+
+                            if (timestamp === previewStartTime) {
+                              return "Start";
+                            }
+
+                            return new Date(timestamp).toLocaleDateString(
+                              "en-GB",
+                              {
+                                day: "2-digit",
+                                month: "short",
+                              },
+                            );
+                          },
                         },
                       },
 
                       y: {
+                        beginAtZero: true,
+
                         grid: {
                           color: "#374151",
                         },
