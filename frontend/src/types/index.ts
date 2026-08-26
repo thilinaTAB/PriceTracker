@@ -30,6 +30,13 @@ export interface Product {
   updatedAt: Date;
 }
 
+export interface PriceHistory {
+  id: number;
+  productId: number;
+  price: number;
+  recordedAt: string;
+}
+
 export interface WishlistItem {
   id: number;
   masterProductId: number;
