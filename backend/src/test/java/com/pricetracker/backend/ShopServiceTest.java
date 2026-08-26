@@ -37,16 +37,16 @@ class ShopServiceTest {
     void setUp() {
         testShop = new Shop();
         testShop.setId(1L);
-        testShop.setName("Keells");
-        testShop.setWebsiteUrl("https://www.keells.com");
-        testShop.setLogoUrl("https://www.keells.com/logo.png");
+        testShop.setName("Nanotek");
+        testShop.setWebsiteUrl("https://www.nanotek.lk");
+        testShop.setLogoUrl("https://www.nanotek.lk/logo.png");
         testShop.setActive(true);
         testShop.setCreatedAt(LocalDateTime.now());
 
         testRequest = new ShopRequestDTO();
-        testRequest.setName("Keells");
-        testRequest.setWebsiteUrl("https://www.keells.com");
-        testRequest.setLogoUrl("https://www.keells.com/logo.png");
+        testRequest.setName("Nanotek");
+        testRequest.setWebsiteUrl("https://www.Nanotek.com");
+        testRequest.setLogoUrl("https://www.Nanotek.lk/logo.png");
         testRequest.setActive(true);
     }
 
@@ -58,7 +58,7 @@ class ShopServiceTest {
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("Keells", result.get(0).getName());
+        assertEquals("Nanotek", result.get(0).getName());
         verify(shopRepository, times(1)).findAll();
     }
 
@@ -69,7 +69,7 @@ class ShopServiceTest {
         ShopResponseDTO result = shopService.getShopById(1L);
 
         assertNotNull(result);
-        assertEquals("Keells", result.getName());
+        assertEquals("Nanotek", result.getName());
         assertEquals(1L, result.getId());
     }
 
@@ -87,7 +87,7 @@ class ShopServiceTest {
         ShopResponseDTO result = shopService.createShop(testRequest);
 
         assertNotNull(result);
-        assertEquals("Keells", result.getName());
+        assertEquals("Nanotek", result.getName());
         verify(shopRepository, times(1)).save(any(Shop.class));
     }
 

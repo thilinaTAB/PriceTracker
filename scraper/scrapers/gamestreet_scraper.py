@@ -2,7 +2,10 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import time
-from utils.api_client import ApiClient
+from utils.scraper_utils import (
+    add_product_metadata,
+    initialize_shop
+)
 from utils.llm_client import (
     extract_model_number,
     extract_variant_value,
@@ -181,8 +184,11 @@ def scrape_product(url, sub_category):
         return None
 
 def run_scraper():
-    api = ApiClient()
-    shop_id = api.get_or_create_shop(SHOP_NAME, SHOP_URL, SHOP_LOGO)
+    api, shop_id = initialize_shop(
+    SHOP_NAME,
+    SHOP_URL,
+    SHOP_LOGO
+)
 
     for category_url, (category, sub_category) in CATEGORIES.items():
         all_urls = scrape_category_page(category_url)
@@ -193,11 +199,12 @@ def run_scraper():
             product = scrape_product(product_url, sub_category)
 
             if product:
-                product["shopId"] = shop_id
-                product["category"] = category
-                product["subCategory"] = sub_category
-                
-                # Deliver payload to Spring Boot sync target logic
+                product = add_product_metadata(
+                    product,
+                    shop_id,
+                    category,
+                    sub_category
+                )
                 api.save_product(product)
 
             # Mandatory 1-second delay block to respect target system capacity
