@@ -20,3 +20,32 @@ export function getPriceHistory(productId: number): Promise<PriceHistory[]> {
     .get<PriceHistory[]>(`/products/${productId}/history`)
     .then((response) => response.data);
 }
+
+export function updateProduct(
+  id: number,
+  data: {
+    name: string;
+    brand: string | null;
+    modelNumber: string | null;
+    variantValue: string | null;
+    sku: string | null;
+    description: string | null;
+    price: number;
+    previousPrice: number | null;
+    imageUrl: string | null;
+    sourceUrl: string;
+    category: string;
+    subCategory: string;
+    isPromotion: boolean;
+    isAvailable: boolean;
+    shopId: number;
+  },
+): Promise<Product> {
+  return apiClient
+    .put<Product>(`/products/${id}`, data)
+    .then((response) => response.data);
+}
+
+export function deleteProduct(id: number): Promise<void> {
+  return apiClient.delete(`/products/${id}`).then(() => undefined);
+}
