@@ -249,11 +249,13 @@ function DashboardPage() {
   const [randomOrder] = useState(() => Math.random());
 
   const homeItems = useMemo(() => {
-    const availableOnly = filteredGroupedProducts.filter((p) =>
-      p.listings.some((l) => l.isAvailable),
+    const availableWithImages = allGroupedProducts.filter(
+      (p) =>
+        p.listings.some((listing) => listing.isAvailable) &&
+        p.listings.some((listing) => Boolean(listing.imageUrl?.trim())),
     );
 
-    const shuffled = [...availableOnly];
+    const shuffled = [...availableWithImages];
 
     let seed = Math.floor(randomOrder * 2147483647);
 
@@ -266,7 +268,7 @@ function DashboardPage() {
     }
 
     return shuffled.slice(0, PAGE_SIZE);
-  }, [filteredGroupedProducts, randomOrder]);
+  }, [allGroupedProducts, randomOrder]);
 
   const totalPages = isHomeTab
     ? 1
@@ -396,7 +398,7 @@ function DashboardPage() {
             </>
           )}
 
-          {!isHomeTab &&  (
+          {!isHomeTab && (
             <>
               {/* VARIANT / SPECIFICATION */}
               <div className="mb-6">
