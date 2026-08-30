@@ -1,0 +1,36 @@
+name: PricePulse Scraper
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "0 */6 * * *"
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Python dependencies
+        working-directory: scraper
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright Chromium
+        working-directory: scraper
+        run: |
+          playwright install chromium
+
+      - name: Run PricePulse scrapers
+        working-directory: scraper
+        run: |
+          python main.py
