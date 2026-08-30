@@ -8,6 +8,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import WishlistPage from "./pages/WishlistPage";
 import AdminProductsPage from "./pages/AdminProductsPage";
+import Footer from "./components/Footer";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/admin/products" element={<AdminProductsPage />} />
         </Routes>
+        <Footer></Footer>
       </BrowserRouter>
     </AuthProvider>
   );

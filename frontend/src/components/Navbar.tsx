@@ -13,7 +13,10 @@ function Navbar() {
   return (
     <nav className="bg-gray-900 text-white px-6 py-4 flex justify-between items-center">
       <Link to="/" className="text-xl font-bold">
-        PricePulse
+        <span className="text-2xl font-black">
+          <span className="text-white">Price</span>
+          <span className="text-blue-500">Pulse</span>
+        </span>
       </Link>
       <div className="flex gap-4 items-center">
         {user ? (

@@ -20,15 +20,16 @@ SHOP_URL = "https://www.nanotek.lk"
 SHOP_LOGO = "https://www.nanotek.lk/imgs/logo/nanotek-logo-social.jpg"
 
 CATEGORIES = {
-    "https://www.nanotek.lk/category/monitors-monitor-arms": ("ELECTRONICS", "MONITOR"),
-    "https://www.nanotek.lk/category/graphics-card": ("ELECTRONICS", "GRAPHICS_CARD"),
-    "https://www.nanotek.lk/category/processor": ("ELECTRONICS", "PROCESSOR"),
-    "https://www.nanotek.lk/category/motherboards": ("ELECTRONICS", "MOTHERBOARD"),
-    "https://www.nanotek.lk/category/memory-ram": ("ELECTRONICS", "RAM"),
-    "https://www.nanotek.lk/category/storage-nas": ("ELECTRONICS", "STORAGE"),
-    "https://www.nanotek.lk/category/power-supply-ups-surge-protectors": ("ELECTRONICS", "POWER_SUPPLY_UPS"),
-    "https://www.nanotek.lk/category/casings": ("ELECTRONICS", "CASING"),
-    "https://www.nanotek.lk/category/cooling-lighting": ("ELECTRONICS", "OTHER_COMPONENTS")
+    # "https://www.nanotek.lk/category/monitors-monitor-arms": ("ELECTRONICS", "MONITOR"),
+    # "https://www.nanotek.lk/category/graphics-card": ("ELECTRONICS", "GRAPHICS_CARD"),
+    # "https://www.nanotek.lk/category/processor": ("ELECTRONICS", "PROCESSOR"),
+    # "https://www.nanotek.lk/category/motherboards": ("ELECTRONICS", "MOTHERBOARD"),
+    # "https://www.nanotek.lk/category/memory-ram": ("ELECTRONICS", "RAM"),
+    # "https://www.nanotek.lk/category/storage-nas": ("ELECTRONICS", "STORAGE"),
+    # "https://www.nanotek.lk/category/power-supply-ups-surge-protectors": ("ELECTRONICS", "POWER_SUPPLY_UPS"),
+    # "https://www.nanotek.lk/category/casings": ("ELECTRONICS", "CASING"),
+    # "https://www.nanotek.lk/category/cooling-lighting": ("ELECTRONICS", "OTHER_COMPONENTS"),
+    "https://www.nanotek.lk/category/keyboardmouse-gamepad-controller": ("ELECTRONICS", "OTHER_COMPONENTS")
 
 }
 
