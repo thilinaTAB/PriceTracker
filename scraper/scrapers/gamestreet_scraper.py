@@ -17,17 +17,20 @@ SHOP_URL = "https://www.gamestreet.lk"
 SHOP_LOGO = "https://www.gamestreet.lk/images/common/logo.png"
 
 CATEGORIES = {
-    "https://www.gamestreet.lk/products.php?cat=Mg==&scat=MQ==": ("ELECTRONICS", "PROCESSOR"),
-    "https://www.gamestreet.lk/products.php?cat=Mg==&scat=NQ==": ("ELECTRONICS", "POWER_SUPPLY_UPS"),
-    "https://www.gamestreet.lk/products.php?cat=Mg==&scat=Mw==": ("ELECTRONICS", "RAM"),
-    "https://www.gamestreet.lk/products.php?cat=Mg==&scat=Mg==": ("ELECTRONICS", "MOTHERBOARD"),
-    "https://www.gamestreet.lk/products.php?cat=Mg==&scat=MTE=": ("ELECTRONICS", "STORAGE"),       # HDDs
-    "https://www.gamestreet.lk/products.php?cat=Mg==&scat=MTM=": ("ELECTRONICS", "STORAGE"),       # SSDs
-    "https://www.gamestreet.lk/products.php?cat=Mg==&scat=Ng==": ("ELECTRONICS", "GRAPHICS_CARD"),
-    "https://www.gamestreet.lk/products.php?cat=Mg==&scat=OA==": ("ELECTRONICS", "MONITOR"),        # Monitors
-    "https://www.gamestreet.lk/products.php?cat=Mg==&scat=NA==": ("ELECTRONICS", "CASING"),            # Cases
-    "https://www.gamestreet.lk/products.php?cat=Mg==&scat=Nw==": ("ELECTRONICS", "OTHER_COMPONENTS"),  # Cooling
-    "https://www.gamestreet.lk/products.php?cat=NA==&scat=MjQ==": ("ELECTRONICS", "OTHER_COMPONENTS"),  # Thermal Paste
+    # "https://www.gamestreet.lk/products.php?cat=Mg==&scat=MQ==": ("ELECTRONICS", "PROCESSOR"),
+    # "https://www.gamestreet.lk/products.php?cat=Mg==&scat=NQ==": ("ELECTRONICS", "POWER_SUPPLY_UPS"),
+    # "https://www.gamestreet.lk/products.php?cat=Mg==&scat=Mw==": ("ELECTRONICS", "RAM"),
+    # "https://www.gamestreet.lk/products.php?cat=Mg==&scat=Mg==": ("ELECTRONICS", "MOTHERBOARD"),
+    # "https://www.gamestreet.lk/products.php?cat=Mg==&scat=MTE=": ("ELECTRONICS", "STORAGE"),       # HDDs
+    # "https://www.gamestreet.lk/products.php?cat=Mg==&scat=MTM=": ("ELECTRONICS", "STORAGE"),       # SSDs
+    # "https://www.gamestreet.lk/products.php?cat=Mg==&scat=Ng==": ("ELECTRONICS", "GRAPHICS_CARD"),
+    # "https://www.gamestreet.lk/products.php?cat=Mg==&scat=OA==": ("ELECTRONICS", "MONITOR"),        # Monitors
+    # "https://www.gamestreet.lk/products.php?cat=Mg==&scat=NA==": ("ELECTRONICS", "CASING"),            # Cases
+    # "https://www.gamestreet.lk/products.php?cat=Mg==&scat=Nw==": ("ELECTRONICS", "OTHER_COMPONENTS"),  # Cooling
+    # "https://www.gamestreet.lk/products.php?cat=NA==&scat=MjQ==": ("ELECTRONICS", "OTHER_COMPONENTS"),  # Thermal Paste
+    "https://www.gamestreet.lk/products.php?cat=Ng==&scat=MTY=": ("ELECTRONICS", "OTHER_COMPONENTS"),  # Keyboards
+    "https://www.gamestreet.lk/products.php?cat=Ng==&scat=MTc=": ("ELECTRONICS", "OTHER_COMPONENTS"),  # Mouse
+    "https://www.gamestreet.lk/products.php?cat=NA==&scat=MTk=": ("ELECTRONICS", "OTHER_COMPONENTS")  # Mouse Pads
 
 }
 

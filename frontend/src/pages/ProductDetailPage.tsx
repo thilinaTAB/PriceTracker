@@ -1,13 +1,14 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { getProducts, getPriceHistory } from "../api/products";
+import { useState, useEffect, type FormEvent } from "react";
+import { getProducts, getPriceHistory, updateProduct } from "../api/products";
 import {
   getWishlist,
   addToWishlist,
   removeFromWishlist,
 } from "../api/wishlist";
+import { getShops } from "../api/shops";
 import { useAuth } from "../context/useAuth";
-import type { Product, PriceHistory } from "../types";
+import type { Product, PriceHistory, Shop } from "../types";
 import { CATEGORY_IMAGES } from "../types/categories";
 import { Line } from "react-chartjs-2";
 import {
@@ -31,11 +32,72 @@ ChartJS.register(
   Legend,
 );
 
+type ProductEditForm = {
+  name: string;
+  brand: string;
+  modelNumber: string;
+  variantValue: string;
+  sku: string;
+  description: string;
+  price: string;
+  previousPrice: string;
+  imageUrl: string;
+  sourceUrl: string;
+  category: string;
+  subCategory: string;
+  isPromotion: boolean;
+  isAvailable: boolean;
+  shopId: string;
+};
+
+const emptyEditForm: ProductEditForm = {
+  name: "",
+  brand: "",
+  modelNumber: "",
+  variantValue: "",
+  sku: "",
+  description: "",
+  price: "",
+  previousPrice: "",
+  imageUrl: "",
+  sourceUrl: "",
+  category: "",
+  subCategory: "",
+  isPromotion: false,
+  isAvailable: true,
+  shopId: "",
+};
+
+function productToEditForm(product: Product): ProductEditForm {
+  return {
+    name: product.name,
+    brand: product.brand ?? "",
+    modelNumber: product.modelNumber ?? "",
+    variantValue: product.variantValue ?? "",
+    sku: product.sku ?? "",
+    description: product.description ?? "",
+    price: String(product.price),
+    previousPrice:
+      product.previousPrice == null ? "" : String(product.previousPrice),
+    imageUrl: product.imageUrl ?? "",
+    sourceUrl: product.sourceUrl ?? "",
+    category: product.category ?? "",
+    subCategory: product.subCategory ?? "",
+    isPromotion: product.isPromotion,
+    isAvailable: product.isAvailable,
+    shopId: String(product.shopId),
+  };
+}
+
 function ProductDetailPage() {
-  const { masterProductId } = useParams<{ masterProductId: string }>();
+  const { masterProductId } = useParams<{
+    masterProductId: string;
+  }>();
 
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const isAdmin = user?.role === "ROLE_ADMIN";
 
   const [matchingOffers, setMatchingOffers] = useState<Product[]>([]);
 
@@ -75,20 +137,59 @@ function ProductDetailPage() {
   const [chartCurrentTime, setChartCurrentTime] = useState<number>(0);
 
   /*
+   * --------------------------------------------------
+   * ADMIN EDIT MODAL STATE
+   * --------------------------------------------------
+   */
+
+  const [editingOffer, setEditingOffer] = useState<Product | null>(null);
+
+  const [editForm, setEditForm] = useState<ProductEditForm>(emptyEditForm);
+
+  const [editSaving, setEditSaving] = useState<boolean>(false);
+
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const [shops, setShops] = useState<Shop[]>([]);
+
+  /*
    * Load all product offers belonging to
    * this master product.
    */
   useEffect(() => {
-    getProducts().then((data) => {
-      const filtered = data.filter(
-        (p) =>
-          p.masterProductId != null &&
-          p.masterProductId === Number(masterProductId),
-      );
+    let cancelled = false;
 
-      setMatchingOffers(filtered);
-      setLoading(false);
-    });
+    async function loadProducts() {
+      try {
+        const data = await getProducts();
+
+        if (cancelled) {
+          return;
+        }
+
+        const filtered = data.filter(
+          (p) =>
+            p.masterProductId != null &&
+            p.masterProductId === Number(masterProductId),
+        );
+
+        setMatchingOffers(filtered);
+        setLoading(false);
+      } catch (error) {
+        console.error("Failed to load products:", error);
+
+        if (!cancelled) {
+          setMatchingOffers([]);
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadProducts();
+
+    return () => {
+      cancelled = true;
+    };
   }, [masterProductId]);
 
   /*
@@ -105,12 +206,47 @@ function ProductDetailPage() {
       return;
     }
 
-    getWishlist().then((items) => {
-      setIsWishlisted(
-        items.some((item) => item.masterProductId === currentMasterProductId),
-      );
-    });
+    getWishlist()
+      .then((items) => {
+        setIsWishlisted(
+          items.some((item) => item.masterProductId === currentMasterProductId),
+        );
+      })
+      .catch((error) => {
+        console.error("Failed to load wishlist:", error);
+      });
   }, [user, matchingOffers]);
+
+  /*
+   * Load shops for the admin edit form.
+   *
+   * This is only necessary for administrators.
+   */
+  useEffect(() => {
+    if (!isAdmin) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadShops() {
+      try {
+        const data = await getShops();
+
+        if (!cancelled) {
+          setShops(data);
+        }
+      } catch (error) {
+        console.error("Failed to load shops:", error);
+      }
+    }
+
+    void loadShops();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin]);
 
   /*
    * Load price history for EVERY retailer.
@@ -192,7 +328,7 @@ function ProductDetailPage() {
       }
     }
 
-    loadPriceHistories();
+    void loadPriceHistories();
 
     return () => {
       cancelled = true;
@@ -266,14 +402,14 @@ function ProductDetailPage() {
    */
 
   const chartColors = [
-    "#2563eb", // Blue
-    "#16a34a", // Green
-    "#f97316", // Orange
-    "#a855f7", // Purple
-    "#e11d48", // Red
-    "#0891b2", // Cyan
-    "#ca8a04", // Yellow
-    "#64748b", // Gray
+    "#2563eb",
+    "#16a34a",
+    "#f97316",
+    "#a855f7",
+    "#e11d48",
+    "#0891b2",
+    "#ca8a04",
+    "#64748b",
   ];
 
   /*
@@ -304,9 +440,7 @@ function ProductDetailPage() {
     const color = chartColors[shopIndex % chartColors.length];
 
     /*
-     * --------------------------------------------
      * REAL HISTORY EXISTS
-     * --------------------------------------------
      */
     if (sortedHistory.length > 0) {
       const historyPoints = sortedHistory.map((item) => ({
@@ -349,18 +483,13 @@ function ProductDetailPage() {
     }
 
     /*
-     * --------------------------------------------
      * NO REAL HISTORY
-     * --------------------------------------------
      *
      * Exactly TWO data points:
      *
      *     0
      *     ↓
      *     current real price
-     *
-     * The curve between them is generated
-     * by Chart.js tension.
      */
     return {
       label: offer.shopName || "Partner Retailer",
@@ -442,6 +571,127 @@ function ProductDetailPage() {
       }
     } finally {
       setWishlistBusy(false);
+    }
+  }
+
+  /*
+   * --------------------------------------------------
+   * ADMIN EDIT FUNCTIONS
+   * --------------------------------------------------
+   */
+
+  function handleEditOffer(offer: Product) {
+    if (!isAdmin) {
+      return;
+    }
+
+    setEditingOffer(offer);
+
+    setEditForm(productToEditForm(offer));
+
+    setEditError(null);
+  }
+
+  function handleCloseEdit() {
+    if (editSaving) {
+      return;
+    }
+
+    setEditingOffer(null);
+    setEditForm(emptyEditForm);
+    setEditError(null);
+  }
+
+  function updateEditField<K extends keyof ProductEditForm>(
+    field: K,
+    value: ProductEditForm[K],
+  ) {
+    setEditForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  async function handleSaveEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editingOffer || !isAdmin) {
+      return;
+    }
+
+    const price = Number(editForm.price);
+
+    if (!Number.isFinite(price) || price < 0) {
+      setEditError("Please enter a valid price.");
+      return;
+    }
+
+    const shopId = Number(editForm.shopId);
+
+    if (!Number.isFinite(shopId) || shopId <= 0) {
+      setEditError("Please select a valid shop.");
+      return;
+    }
+
+    setEditSaving(true);
+    setEditError(null);
+
+    try {
+      const updated = await updateProduct(editingOffer.id, {
+        name: editForm.name.trim(),
+
+        brand: editForm.brand.trim() || null,
+
+        modelNumber: editForm.modelNumber.trim() || null,
+
+        variantValue: editForm.variantValue.trim() || null,
+
+        sku: editForm.sku.trim() || null,
+
+        description: editForm.description.trim() || null,
+
+        price,
+
+        previousPrice:
+          editForm.previousPrice.trim() === ""
+            ? null
+            : Number(editForm.previousPrice),
+
+        imageUrl: editForm.imageUrl.trim() || null,
+
+        sourceUrl: editForm.sourceUrl.trim(),
+
+        category: editForm.category,
+
+        subCategory: editForm.subCategory,
+
+        isPromotion: editForm.isPromotion,
+
+        isAvailable: editForm.isAvailable,
+
+        shopId,
+      });
+
+      /*
+       * Replace only the edited retailer offer.
+       *
+       * Other shop offers remain untouched.
+       */
+      setMatchingOffers((current) =>
+        current.map((offer) => (offer.id === updated.id ? updated : offer)),
+      );
+
+      setEditingOffer(null);
+      setEditForm(emptyEditForm);
+      setEditError(null);
+    } catch (error) {
+      console.error("Failed to update product:", error);
+
+      setEditError(
+        "Unable to update the product. Please check the values and try again.",
+      );
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -555,6 +805,17 @@ function ProductDetailPage() {
                       Rs. {offer.price.toLocaleString()}
                     </p>
 
+                    {/* ADMIN EDIT BUTTON */}
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => handleEditOffer(offer)}
+                        className="text-xs font-bold px-4 py-2.5 rounded-lg bg-yellow-600 text-white hover:bg-yellow-500 transition-colors whitespace-nowrap"
+                      >
+                        Edit
+                      </button>
+                    )}
+
                     {offer.isAvailable ? (
                       <a
                         href={offer.sourceUrl}
@@ -618,9 +879,6 @@ function ProductDetailPage() {
                     },
 
                     plugins: {
-                      /*
-                       * Show each retailer.
-                       */
                       legend: {
                         display: true,
 
@@ -655,9 +913,6 @@ function ProductDetailPage() {
 
                             const timestamp = Number(items[0].parsed.x);
 
-                            /*
-                             * Preview starting point.
-                             */
                             if (timestamp === previewStartTime) {
                               return "Start";
                             }
@@ -676,11 +931,6 @@ function ProductDetailPage() {
                     },
 
                     scales: {
-                      /*
-                       * Timestamp-based linear X-axis.
-                       *
-                       * No date adapter package required.
-                       */
                       x: {
                         type: "linear" as const,
 
@@ -741,6 +991,347 @@ function ProductDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* =========================================================
+          ADMIN EDIT MODAL
+          ========================================================= */}
+
+      {editingOffer && (
+        <div
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm overflow-y-auto p-4"
+          onMouseDown={(event) => {
+            /*
+             * Clicking the dark background closes
+             * the modal. Clicking inside the modal
+             * itself does not.
+             */
+            if (event.target === event.currentTarget) {
+              handleCloseEdit();
+            }
+          }}
+        >
+          <div className="min-h-full flex items-start justify-center py-8">
+            <div className="w-full max-w-5xl bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden">
+              {/* Modal Header */}
+              <div className="px-6 py-5 border-b border-gray-800 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">
+                    Edit Product
+                  </h2>
+
+                  <p className="text-sm text-gray-500 mt-1">
+                    Product ID: {editingOffer.id}
+                  </p>
+
+                  <p className="text-xs text-blue-400 mt-1">
+                    {editingOffer.shopName || "Partner Retailer"}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCloseEdit}
+                  disabled={editSaving}
+                  className="text-gray-400 hover:text-white text-3xl leading-none disabled:opacity-40"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Error */}
+              {editError && (
+                <div className="mx-6 mt-5 rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+                  {editError}
+                </div>
+              )}
+
+              {/* Form */}
+              <form onSubmit={handleSaveEdit} className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-5">
+                  {/* Product Name */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-400 mb-2 text-center">
+                      Product Name
+                    </label>
+
+                    <input
+                      type="text"
+                      value={editForm.name}
+                      onChange={(event) =>
+                        updateEditField("name", event.target.value)
+                      }
+                      required
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Brand */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-400 mb-2 text-center">
+                      Brand
+                    </label>
+
+                    <input
+                      type="text"
+                      value={editForm.brand}
+                      onChange={(event) =>
+                        updateEditField("brand", event.target.value)
+                      }
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Model Number */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-400 mb-2 text-center">
+                      Model Number
+                    </label>
+
+                    <input
+                      type="text"
+                      value={editForm.modelNumber}
+                      onChange={(event) =>
+                        updateEditField("modelNumber", event.target.value)
+                      }
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Variant */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-400 mb-2 text-center">
+                      Variant Value
+                    </label>
+
+                    <input
+                      type="text"
+                      value={editForm.variantValue}
+                      onChange={(event) =>
+                        updateEditField("variantValue", event.target.value)
+                      }
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* SKU */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-400 mb-2 text-center">
+                      SKU
+                    </label>
+
+                    <input
+                      type="text"
+                      value={editForm.sku}
+                      onChange={(event) =>
+                        updateEditField("sku", event.target.value)
+                      }
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Price */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-400 mb-2 text-center">
+                      Price
+                    </label>
+
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={editForm.price}
+                      onChange={(event) =>
+                        updateEditField("price", event.target.value)
+                      }
+                      required
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Previous Price */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-400 mb-2 text-center">
+                      Previous Price
+                    </label>
+
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={editForm.previousPrice}
+                      onChange={(event) =>
+                        updateEditField("previousPrice", event.target.value)
+                      }
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Category */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-400 mb-2 text-center">
+                      Category
+                    </label>
+
+                    <input
+                      type="text"
+                      value={editForm.category}
+                      onChange={(event) =>
+                        updateEditField("category", event.target.value)
+                      }
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Sub Category */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-400 mb-2 text-center">
+                      Sub Category
+                    </label>
+
+                    <input
+                      type="text"
+                      value={editForm.subCategory}
+                      onChange={(event) =>
+                        updateEditField("subCategory", event.target.value)
+                      }
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Shop */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-400 mb-2 text-center">
+                      Shop
+                    </label>
+
+                    <select
+                      value={editForm.shopId}
+                      onChange={(event) =>
+                        updateEditField("shopId", event.target.value)
+                      }
+                      required
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white outline-none focus:border-blue-500"
+                    >
+                      {shops.length === 0 && (
+                        <option value={editForm.shopId}>
+                          {editingOffer.shopName}
+                        </option>
+                      )}
+
+                      {shops.map((shop) => (
+                        <option key={shop.id} value={String(shop.id)}>
+                          {shop.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Availability */}
+                  <div className="flex items-end">
+                    <label className="flex items-center gap-3 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 w-full cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editForm.isAvailable}
+                        onChange={(event) =>
+                          updateEditField("isAvailable", event.target.checked)
+                        }
+                        className="w-4 h-4 accent-blue-600"
+                      />
+
+                      <span className="text-sm text-gray-200">Available</span>
+                    </label>
+                  </div>
+
+                  {/* Promotion */}
+                  <div>
+                    <label className="flex items-center gap-3 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 w-full cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editForm.isPromotion}
+                        onChange={(event) =>
+                          updateEditField("isPromotion", event.target.checked)
+                        }
+                        className="w-4 h-4 accent-blue-600"
+                      />
+
+                      <span className="text-sm text-gray-200">Promotion</span>
+                    </label>
+                  </div>
+
+                  {/* Description */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-400 mb-2 text-center">
+                      Description
+                    </label>
+
+                    <textarea
+                      value={editForm.description}
+                      onChange={(event) =>
+                        updateEditField("description", event.target.value)
+                      }
+                      rows={4}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white outline-none focus:border-blue-500 resize-y"
+                    />
+                  </div>
+
+                  {/* Image URL */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-400 mb-2 text-center">
+                      Image URL
+                    </label>
+
+                    <input
+                      type="url"
+                      value={editForm.imageUrl}
+                      onChange={(event) =>
+                        updateEditField("imageUrl", event.target.value)
+                      }
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Source URL */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-400 mb-2 text-center">
+                      Source URL
+                    </label>
+
+                    <input
+                      type="url"
+                      value={editForm.sourceUrl}
+                      onChange={(event) =>
+                        updateEditField("sourceUrl", event.target.value)
+                      }
+                      required
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="mt-7 pt-5 border-t border-gray-800 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={handleCloseEdit}
+                    disabled={editSaving}
+                    className="px-5 py-2.5 rounded-lg bg-gray-700 text-gray-200 font-semibold text-sm hover:bg-gray-600 disabled:opacity-40"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={editSaving}
+                    className="px-5 py-2.5 rounded-lg bg-blue-600 text-white font-bold text-sm hover:bg-blue-500 disabled:opacity-50"
+                  >
+                    {editSaving ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

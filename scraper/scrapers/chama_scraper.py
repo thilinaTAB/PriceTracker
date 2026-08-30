@@ -18,16 +18,19 @@ SHOP_LOGO = "https://www.chamacomputers.lk/img/LOGO_White.png"
 
 CATEGORIES = {
 
-    "https://www.chamacomputers.lk/products/processors": ("ELECTRONICS", "PROCESSOR"),
-    "https://www.chamacomputers.lk/products/memory": ("ELECTRONICS", "RAM"),
-    "https://www.chamacomputers.lk/products/thermal%20paste": ("ELECTRONICS", "OTHER_COMPONENTS"),
-    "https://www.chamacomputers.lk/products/motherboards": ("ELECTRONICS", "MOTHERBOARD"),
-    "https://www.chamacomputers.lk/products/ssd": ("ELECTRONICS", "STORAGE"),
-    "https://www.chamacomputers.lk/products/storage": ("ELECTRONICS", "STORAGE"),
-    "https://www.chamacomputers.lk/products/graphics%20cards": ("ELECTRONICS", "GRAPHICS_CARD"),
-    "https://www.chamacomputers.lk/products/power%20supply": ("ELECTRONICS", "POWER_SUPPLY_UPS"),
-    "https://www.chamacomputers.lk/products/pc%20cases": ("ELECTRONICS", "CASING"),
-    "https://www.chamacomputers.lk/products/coolers": ("ELECTRONICS", "OTHER_COMPONENTS"),
+    # "https://www.chamacomputers.lk/products/processors": ("ELECTRONICS", "PROCESSOR"),
+    # "https://www.chamacomputers.lk/products/memory": ("ELECTRONICS", "RAM"),
+    # "https://www.chamacomputers.lk/products/thermal%20paste": ("ELECTRONICS", "OTHER_COMPONENTS"),
+    # "https://www.chamacomputers.lk/products/motherboards": ("ELECTRONICS", "MOTHERBOARD"),
+    # "https://www.chamacomputers.lk/products/ssd": ("ELECTRONICS", "STORAGE"),
+    # "https://www.chamacomputers.lk/products/storage": ("ELECTRONICS", "STORAGE"),
+    # "https://www.chamacomputers.lk/products/graphics%20cards": ("ELECTRONICS", "GRAPHICS_CARD"),
+    # "https://www.chamacomputers.lk/products/power%20supply": ("ELECTRONICS", "POWER_SUPPLY_UPS"),
+    # "https://www.chamacomputers.lk/products/pc%20cases": ("ELECTRONICS", "CASING"),
+    # "https://www.chamacomputers.lk/products/coolers": ("ELECTRONICS", "OTHER_COMPONENTS"),
+    "https://www.chamacomputers.lk/products/keyboards?minuwangoda=true&kandy=true&colombo=true": ("ELECTRONICS", "OTHER_COMPONENTS"),
+    "https://www.chamacomputers.lk/products/mouse?minuwangoda=true&kandy=true&colombo=true": ("ELECTRONICS", "OTHER_COMPONENTS"),
+    "https://www.chamacomputers.lk/products/mouse%20pad?minuwangoda=true&kandy=true&colombo=true": ("ELECTRONICS", "OTHER_COMPONENTS")
 
 }
 
