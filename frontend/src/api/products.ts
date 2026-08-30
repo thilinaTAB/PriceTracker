@@ -1,11 +1,22 @@
 import apiClient from "./client";
 import type { Product, PriceHistory } from "../types";
 
-export function getProducts(isAvailable?: boolean): Promise<Product[]> {
+export function getProducts(
+  isAvailable?: boolean,
+  location?: string,
+): Promise<Product[]> {
+  const params: Record<string, string | boolean> = {};
+
+  if (isAvailable !== undefined) {
+    params.isAvailable = isAvailable;
+  }
+
+  if (location) {
+    params.location = location;
+  }
+
   return apiClient
-    .get<
-      Product[]
-    >("/products", { params: isAvailable !== undefined ? { isAvailable } : {} })
+    .get<Product[]>("/products", { params })
     .then((response) => response.data);
 }
 

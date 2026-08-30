@@ -19,7 +19,11 @@ from utils.llm_client import (
 SHOP_NAME = "ComputerAge"
 SHOP_URL = "https://computerage.lk"
 
-SHOP_LOGO = "https://i0.wp.com/computerage.lk/wp-content/uploads/2024/07/computarage-logo-updated.png"
+SHOP_LOGO = (
+    "https://i0.wp.com/computerage.lk/wp-content/uploads/"
+    "2024/07/computarage-logo-updated.png"
+)
+
 
 CATEGORIES = {
     "https://computerage.lk/product-category/pc-components/processor/":
@@ -48,6 +52,10 @@ CATEGORIES = {
 }
 
 
+# ==========================================================
+# GENERAL HELPERS
+# ==========================================================
+
 def clean_text(text):
     if not text:
         return None
@@ -61,7 +69,6 @@ def clean_price(price_text):
 
     text = str(price_text)
 
-    # Remove currency and separators
     text = (
         text
         .replace(",", "")
@@ -86,12 +93,6 @@ def clean_price(price_text):
 
 
 async def close_popups(page):
-    """
-    ComputerAge may display modal/popup elements.
-    This function attempts common close controls without
-    failing the scraper if none exists.
-    """
-
     selectors = [
         "button[aria-label='Close']",
         "button.close",
@@ -111,6 +112,7 @@ async def close_popups(page):
             ).first
 
             if await locator.count() > 0:
+
                 await locator.click(
                     timeout=1000
                 )
@@ -123,179 +125,7 @@ async def close_popups(page):
             pass
 
 
-async def collect_product_urls(page, category_url):
-    """
-    ComputerAge uses a Load More products mechanism.
-    This method keeps clicking Load More until no additional
-    products are loaded.
-    """
-
-    print(
-        f"\n📂 Indexing: {category_url}"
-    )
-
-    try:
-
-        await page.goto(
-            category_url,
-            wait_until="domcontentloaded",
-            timeout=60000
-        )
-
-        await close_popups(page)
-
-        await page.wait_for_timeout(1500)
-
-        # Wait until products appear
-        await page.wait_for_selector(
-            "a[href*='/product/']",
-            timeout=20000
-        )
-
-        previous_count = 0
-
-        while True:
-
-            product_links = page.locator(
-                "a[href*='/product/']"
-            )
-
-            current_count = await product_links.count()
-
-            print(
-                f"   Products currently loaded: "
-                f"{current_count}"
-            )
-
-            if current_count == previous_count:
-                break
-
-            previous_count = current_count
-
-            # Find the actual ComputerAge
-            # "Load more products" control.
-            load_more = page.get_by_text(
-                "Load more products",
-                exact=True
-            ).last
-
-            if await load_more.count() == 0:
-                break
-
-            try:
-
-                await load_more.scroll_into_view_if_needed()
-
-                await load_more.click(
-                    timeout=5000
-                )
-
-            except Exception:
-
-                # If the text element itself isn't clickable,
-                # try its parent button/link.
-                parent = load_more.locator(
-                    "xpath=.."
-                ).first
-
-                if await parent.count() == 0:
-                    break
-
-                try:
-                    await parent.click(
-                        timeout=5000
-                    )
-                except Exception:
-                    break
-
-            # Wait for AJAX-loaded products.
-            try:
-
-                await page.wait_for_function(
-                    """
-                    previous => {
-                        const count =
-                            document.querySelectorAll(
-                                "a[href*='/product/']"
-                            ).length;
-
-                        return count > previous;
-                    }
-                    """,
-                    arg=previous_count,
-                    timeout=15000
-                )
-
-            except TimeoutError:
-
-                # Give the page a little extra time.
-                await page.wait_for_timeout(
-                    2000
-                )
-
-                new_count = await page.locator(
-                    "a[href*='/product/']"
-                ).count()
-
-                if new_count <= previous_count:
-                    break
-
-        # Collect URLs only after all products are loaded.
-        anchors = page.locator(
-            "a[href*='/product/']"
-        )
-
-        urls = []
-
-        for i in range(
-            await anchors.count()
-        ):
-
-            href = await anchors.nth(i).get_attribute(
-                "href"
-            )
-
-            if not href:
-                continue
-
-            absolute_url = urljoin(
-                SHOP_URL,
-                href
-            )
-
-            # Keep only actual product URLs.
-            if "/product/" not in absolute_url:
-                continue
-
-            urls.append(
-                absolute_url
-            )
-
-        # Remove duplicates while preserving order.
-        urls = list(
-            dict.fromkeys(urls)
-        )
-
-        print(
-            f"✅ {len(urls)} unique products found"
-        )
-
-        return urls
-
-    except Exception as e:
-
-        print(
-            f"❌ Category indexing failed: {e}"
-        )
-
-        return []
-
-
 async def get_first_text(page, selectors):
-    """
-    Return the first non-empty text found
-    from the supplied selectors.
-    """
 
     for selector in selectors:
 
@@ -326,10 +156,6 @@ async def get_first_attribute(
     selectors,
     attribute
 ):
-    """
-    Return the first non-empty attribute
-    found from the supplied selectors.
-    """
 
     for selector in selectors:
 
@@ -355,15 +181,443 @@ async def get_first_attribute(
     return None
 
 
+# ==========================================================
+# AVAILABILITY
+# ==========================================================
+
+async def detect_availability(page):
+
+    """
+    Detect the actual WooCommerce product availability.
+
+    Priority:
+
+    1. .summary .stock element
+    2. Stock element CSS class
+    3. Stock element text
+    4. Add-to-cart button
+    5. Product summary text only
+
+    IMPORTANT:
+    Never inspect the entire page body because unrelated
+    sections can contain "out of stock" text.
+    """
+
+    print(
+        "      📦 Detecting availability..."
+    )
+
+    # ------------------------------------------------------
+    # 1. WooCommerce stock element
+    # ------------------------------------------------------
+
+    stock_selectors = [
+        ".summary p.stock",
+        ".summary .stock",
+        ".summary .woocommerce-variation-availability .stock",
+        ".summary .availability"
+    ]
+
+    for selector in stock_selectors:
+
+        try:
+
+            locator = page.locator(
+                selector
+            ).first
+
+            if await locator.count() == 0:
+                continue
+
+            stock_text = clean_text(
+                await locator.inner_text()
+            ) or ""
+
+            class_name = (
+                await locator.get_attribute("class")
+                or ""
+            )
+
+            stock_text_lower = stock_text.lower()
+            class_lower = class_name.lower()
+
+            print(
+                f"      Stock element: "
+                f"'{stock_text}'"
+            )
+
+            print(
+                f"      Stock classes: "
+                f"'{class_name}'"
+            )
+
+            # ------------------------------------------------
+            # CSS class is the strongest signal
+            # ------------------------------------------------
+
+            if (
+                "out-of-stock" in class_lower
+                or "out_of_stock" in class_lower
+            ):
+
+                print(
+                    "      ❌ OUT OF STOCK "
+                    "(WooCommerce class)"
+                )
+
+                return False
+
+            if (
+                "in-stock" in class_lower
+                or "in_stock" in class_lower
+            ):
+
+                print(
+                    "      ✅ AVAILABLE "
+                    "(WooCommerce class)"
+                )
+
+                return True
+
+            # ------------------------------------------------
+            # Text is secondary signal
+            # ------------------------------------------------
+
+            if (
+                "out of stock" in stock_text_lower
+                or "sold out" in stock_text_lower
+                or "unavailable" in stock_text_lower
+            ):
+
+                print(
+                    "      ❌ OUT OF STOCK "
+                    "(stock text)"
+                )
+
+                return False
+
+            if (
+                "in stock" in stock_text_lower
+                or "available" in stock_text_lower
+            ):
+
+                print(
+                    "      ✅ AVAILABLE "
+                    "(stock text)"
+                )
+
+                return True
+
+        except Exception as e:
+
+            print(
+                f"      ⚠️ Stock selector error "
+                f"{selector}: {e}"
+            )
+
+    # ------------------------------------------------------
+    # 2. WooCommerce Add To Cart button
+    # ------------------------------------------------------
+
+    add_to_cart_selectors = [
+        ".summary .single_add_to_cart_button",
+        ".summary button.single_add_to_cart_button",
+        ".summary button[type='submit']"
+    ]
+
+    for selector in add_to_cart_selectors:
+
+        try:
+
+            button = page.locator(
+                selector
+            ).first
+
+            if await button.count() == 0:
+                continue
+
+            class_name = (
+                await button.get_attribute("class")
+                or ""
+            )
+
+            disabled = await button.is_disabled()
+
+            class_lower = class_name.lower()
+
+            print(
+                f"      Add-to-cart classes: "
+                f"'{class_name}'"
+            )
+
+            if (
+                "out-of-stock" in class_lower
+                or "out_of_stock" in class_lower
+            ):
+
+                print(
+                    "      ❌ OUT OF STOCK "
+                    "(Add-to-cart class)"
+                )
+
+                return False
+
+            if not disabled:
+
+                print(
+                    "      ✅ AVAILABLE "
+                    "(Add-to-cart enabled)"
+                )
+
+                return True
+
+        except Exception:
+            continue
+
+    # ------------------------------------------------------
+    # 3. Product summary only
+    # ------------------------------------------------------
+
+    try:
+
+        summary = page.locator(
+            ".summary"
+        ).first
+
+        if await summary.count() > 0:
+
+            summary_text = clean_text(
+                await summary.inner_text()
+            ) or ""
+
+            summary_lower = summary_text.lower()
+
+            # Negative status first.
+            if (
+                "out of stock" in summary_lower
+                or "sold out" in summary_lower
+                or "unavailable" in summary_lower
+            ):
+
+                print(
+                    "      ❌ OUT OF STOCK "
+                    "(product summary)"
+                )
+
+                return False
+
+            # Explicit positive status.
+            if (
+                "in stock" in summary_lower
+                or "available" in summary_lower
+            ):
+
+                print(
+                    "      ✅ AVAILABLE "
+                    "(product summary)"
+                )
+
+                return True
+
+    except Exception:
+        pass
+
+    # ------------------------------------------------------
+    # 4. No explicit status found
+    # ------------------------------------------------------
+
+    print(
+        "      ⚠️ No explicit stock status found."
+    )
+
+    print(
+        "      ⚠️ Marking as AVAILABLE because "
+        "the product page and valid price exist."
+    )
+
+    return True
+
+
+# ==========================================================
+# PRODUCT URL COLLECTION
+# ==========================================================
+
+async def collect_product_urls(
+    page,
+    category_url
+):
+
+    print(
+        f"\n📂 Indexing: {category_url}"
+    )
+
+    try:
+
+        await page.goto(
+            category_url,
+            wait_until="domcontentloaded",
+            timeout=60000
+        )
+
+        await close_popups(page)
+
+        await page.wait_for_timeout(
+            1500
+        )
+
+        await page.wait_for_selector(
+            "a[href*='/product/']",
+            timeout=20000
+        )
+
+        previous_count = 0
+
+        while True:
+
+            product_links = page.locator(
+                "a[href*='/product/']"
+            )
+
+            current_count = await product_links.count()
+
+            print(
+                f"   Products currently loaded: "
+                f"{current_count}"
+            )
+
+            if current_count == previous_count:
+                break
+
+            previous_count = current_count
+
+            load_more = page.get_by_text(
+                "Load more products",
+                exact=True
+            ).last
+
+            if await load_more.count() == 0:
+                break
+
+            try:
+
+                await load_more.scroll_into_view_if_needed()
+
+                await load_more.click(
+                    timeout=5000
+                )
+
+            except Exception:
+
+                parent = load_more.locator(
+                    "xpath=.."
+                ).first
+
+                if await parent.count() == 0:
+                    break
+
+                try:
+
+                    await parent.click(
+                        timeout=5000
+                    )
+
+                except Exception:
+                    break
+
+            try:
+
+                await page.wait_for_function(
+                    """
+                    previous => {
+                        const count =
+                            document.querySelectorAll(
+                                "a[href*='/product/']"
+                            ).length;
+
+                        return count > previous;
+                    }
+                    """,
+                    arg=previous_count,
+                    timeout=15000
+                )
+
+            except TimeoutError:
+
+                await page.wait_for_timeout(
+                    2000
+                )
+
+                new_count = await page.locator(
+                    "a[href*='/product/']"
+                ).count()
+
+                if new_count <= previous_count:
+                    break
+
+        anchors = page.locator(
+            "a[href*='/product/']"
+        )
+
+        urls = []
+
+        for i in range(
+            await anchors.count()
+        ):
+
+            href = await anchors.nth(
+                i
+            ).get_attribute(
+                "href"
+            )
+
+            if not href:
+                continue
+
+            absolute_url = urljoin(
+                SHOP_URL,
+                href
+            )
+
+            if "/product/" not in absolute_url:
+                continue
+
+            urls.append(
+                absolute_url
+            )
+
+        urls = list(
+            dict.fromkeys(urls)
+        )
+
+        print(
+            f"✅ {len(urls)} unique products found"
+        )
+
+        return urls
+
+    except Exception as e:
+
+        print(
+            f"❌ Category indexing failed: {e}"
+        )
+
+        return []
+
+
+# ==========================================================
+# PRODUCT SCRAPER
+# ==========================================================
+
 async def scrape_product(
     page,
     url,
     sub_category
 ):
+
     try:
 
         print(
-            f"   🔎 {url}"
+            f"\n   🔎 {url}"
         )
 
         await page.goto(
@@ -374,8 +628,12 @@ async def scrape_product(
 
         await close_popups(page)
 
+        await page.wait_for_timeout(
+            500
+        )
+
         # --------------------------------------------------
-        # Product Name
+        # PRODUCT NAME
         # --------------------------------------------------
 
         name = await get_first_text(
@@ -394,11 +652,12 @@ async def scrape_product(
 
             return None
 
+        print(
+            f"      🏷️ {name}"
+        )
+
         # --------------------------------------------------
-        # Brand
-        #
-        # ComputerAge product pages expose manufacturer
-        # information in Additional Information.
+        # BRAND
         # --------------------------------------------------
 
         brand = None
@@ -406,7 +665,8 @@ async def scrape_product(
         manufacturer_selectors = [
             "tr:has(th:has-text('MANUFACTURER')) td",
             "tr:has(td:has-text('MANUFACTURER')) td",
-            ".woocommerce-product-attributes-item--attribute_pa_manufacturer .woocommerce-product-attributes-item__value"
+            ".woocommerce-product-attributes-item--attribute_pa_manufacturer "
+            ".woocommerce-product-attributes-item__value"
         ]
 
         for selector in manufacturer_selectors:
@@ -422,35 +682,55 @@ async def scrape_product(
 
                 text = await locator.text_content()
 
-                text = clean_text(text)
+                text = clean_text(
+                    text
+                )
 
-                if text and text.upper() != "MANUFACTURER":
+                if (
+                    text
+                    and text.upper() != "MANUFACTURER"
+                ):
+
                     brand = text
+
                     break
 
             except Exception:
                 continue
 
-        # Fallback to existing normalization utility.
         if not brand:
-            brand = normalize_brand(
+
+            first_word = (
                 name.split()[0]
+                if name.split()
+                else ""
             )
+
+            brand = normalize_brand(
+                first_word
+            )
+
         else:
+
             brand = normalize_brand(
                 brand
             )
 
         # --------------------------------------------------
-        # Current Price
+        # CURRENT PRICE
         # --------------------------------------------------
 
         price = None
 
         current_price_selectors = [
-            ".summary p.price ins .woocommerce-Price-amount",
-            ".summary p.price > .woocommerce-Price-amount",
-            ".summary .price .woocommerce-Price-amount"
+            ".summary p.price ins "
+            ".woocommerce-Price-amount",
+
+            ".summary p.price > "
+            ".woocommerce-Price-amount",
+
+            ".summary .price "
+            ".woocommerce-Price-amount"
         ]
 
         for selector in current_price_selectors:
@@ -466,10 +746,14 @@ async def scrape_product(
 
                 text = await locator.text_content()
 
-                value = clean_price(text)
+                value = clean_price(
+                    text
+                )
 
                 if value is not None:
+
                     price = value
+
                     break
 
             except Exception:
@@ -483,17 +767,20 @@ async def scrape_product(
 
             return None
 
+        print(
+            f"      💰 Price: {price}"
+        )
+
         # --------------------------------------------------
-        # Previous Price
-        #
-        # ComputerAge uses <del> for the old price when
-        # a product is discounted.
+        # PREVIOUS PRICE
         # --------------------------------------------------
 
         previous_price = None
 
         previous_price_selectors = [
-            ".summary p.price del .woocommerce-Price-amount",
+            ".summary p.price del "
+            ".woocommerce-Price-amount",
+
             ".summary p.price del"
         ]
 
@@ -510,62 +797,29 @@ async def scrape_product(
 
                 text = await locator.text_content()
 
-                value = clean_price(text)
+                value = clean_price(
+                    text
+                )
 
                 if value is not None:
+
                     previous_price = value
+
                     break
 
             except Exception:
                 continue
 
         # --------------------------------------------------
-        # Availability
+        # AVAILABILITY
         # --------------------------------------------------
 
-        body_text = clean_text(
-            await page.locator(
-                "body"
-            ).inner_text()
-        ) or ""
-
-        body_lower = body_text.lower()
-
-        is_available = True
-
-        if (
-            "out of stock" in body_lower
-            or "sold out" in body_lower
-        ):
-            is_available = False
-
-        # WooCommerce stock element gives us a more
-        # specific signal when present.
-        stock_locator = page.locator(
-            ".summary p.stock"
-        ).first
-
-        if await stock_locator.count() > 0:
-
-            stock_text = clean_text(
-                await stock_locator.text_content()
-            )
-
-            if stock_text:
-
-                stock_lower = stock_text.lower()
-
-                if (
-                    "out of stock" in stock_lower
-                    or "sold out" in stock_lower
-                ):
-                    is_available = False
-
-                elif "in stock" in stock_lower:
-                    is_available = True
+        is_available = await detect_availability(
+            page
+        )
 
         # --------------------------------------------------
-        # Image
+        # IMAGE
         # --------------------------------------------------
 
         image_url = await get_first_attribute(
@@ -589,6 +843,7 @@ async def scrape_product(
             )
 
         if image_url:
+
             image_url = urljoin(
                 SHOP_URL,
                 image_url
@@ -612,20 +867,30 @@ async def scrape_product(
 
         if not sku:
 
-            sku_match = re.search(
-                r"\bSKU\s*[:#]?\s*([A-Za-z0-9._/-]+)",
-                body_text,
-                re.IGNORECASE
-            )
+            # Use only product-related content.
+            sku_locator = page.locator(
+                ".summary"
+            ).first
 
-            if sku_match:
-                sku = sku_match.group(1)
+            if await sku_locator.count() > 0:
+
+                summary_text = clean_text(
+                    await sku_locator.inner_text()
+                ) or ""
+
+                sku_match = re.search(
+                    r"\bSKU\s*[:#]?\s*"
+                    r"([A-Za-z0-9._/-]+)",
+                    summary_text,
+                    re.IGNORECASE
+                )
+
+                if sku_match:
+
+                    sku = sku_match.group(1)
 
         # --------------------------------------------------
-        # Description
-        #
-        # ComputerAge currently publishes structured
-        # descriptions/specifications on its product pages.
+        # DESCRIPTION
         # --------------------------------------------------
 
         description = None
@@ -652,17 +917,20 @@ async def scrape_product(
                 )
 
                 if text:
+
                     description = text
+
                     break
 
             except Exception:
                 continue
 
         if not description:
+
             description = name
 
         # --------------------------------------------------
-        # Model Number
+        # MODEL NUMBER
         # --------------------------------------------------
 
         model_number = extract_model_number(
@@ -672,7 +940,7 @@ async def scrape_product(
         )
 
         # --------------------------------------------------
-        # Variant
+        # VARIANT
         # --------------------------------------------------
 
         variant_value = extract_variant_value(
@@ -681,10 +949,10 @@ async def scrape_product(
         )
 
         # --------------------------------------------------
-        # Product object
+        # FINAL PRODUCT
         # --------------------------------------------------
 
-        return {
+        product = {
             "name": name,
             "brand": brand,
             "modelNumber": model_number,
@@ -694,13 +962,22 @@ async def scrape_product(
             "previousPrice": previous_price,
             "imageUrl": image_url,
             "sourceUrl": url,
+
             "isPromotion": (
                 previous_price is not None
                 and previous_price > price
             ),
+
             "isAvailable": is_available,
+
             "description": description
         }
+
+        print(
+            f"      {'✅ AVAILABLE' if is_available else '❌ OUT OF STOCK'}"
+        )
+
+        return product
 
     except TimeoutError:
 
@@ -715,10 +992,15 @@ async def scrape_product(
         print(
             f"❌ Product scraping failed: {url}"
         )
+
         print(e)
 
         return None
 
+
+# ==========================================================
+# MAIN SCRAPER
+# ==========================================================
 
 async def run_scraper():
 
@@ -745,20 +1027,22 @@ async def run_scraper():
                 sub_category
             ) in CATEGORIES.items():
 
-                print("\n" + "=" * 70)
+                print(
+                    "\n" + "=" * 70
+                )
 
                 print(
                     f"📂 ComputerAge | "
                     f"{sub_category}"
                 )
 
-                print("=" * 70)
+                print(
+                    "=" * 70
+                )
 
-                product_urls = (
-                    await collect_product_urls(
-                        listing_page,
-                        category_url
-                    )
+                product_urls = await collect_product_urls(
+                    listing_page,
+                    category_url
                 )
 
                 print(
@@ -795,21 +1079,33 @@ async def run_scraper():
                         product
                     )
 
-                    # Small delay between product pages.
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(
+                        0.5
+                    )
 
         finally:
 
             await product_page.close()
+
             await listing_page.close()
+
             await browser.close()
 
     print(
-        "\n✅ ComputerAge scraping completed."
+        "\n" + "=" * 70
+    )
+
+    print(
+        "✅ ComputerAge scraping completed."
+    )
+
+    print(
+        "=" * 70
     )
 
 
 if __name__ == "__main__":
+
     asyncio.run(
         run_scraper()
     )
