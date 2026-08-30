@@ -5,6 +5,7 @@ export interface Shop {
   logoUrl: string;
   active: boolean;
   createdAt: Date;
+  locations: string[];
 }
 
 export interface Product {

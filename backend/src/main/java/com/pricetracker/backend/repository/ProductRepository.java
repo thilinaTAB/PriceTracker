@@ -23,4 +23,28 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT MIN(p.price) FROM Product p WHERE p.masterProduct.id = :masterProductId")
     BigDecimal findLowestPriceByMasterProductId(@Param("masterProductId") Long masterProductId);
+
+    @Query("""
+    SELECT DISTINCT p
+    FROM Product p
+    JOIN p.shop s
+    JOIN s.locations l
+    WHERE LOWER(l.location) = LOWER(:location)
+""")
+    List<Product> findByShopLocations(
+            @Param("location") String location
+    );
+
+    @Query("""
+    SELECT DISTINCT p
+    FROM Product p
+    JOIN p.shop s
+    JOIN s.locations l
+    WHERE p.isAvailable = :isAvailable
+    AND LOWER(l.location) = LOWER(:location)
+""")
+    List<Product> findByIsAvailableAndShopLocations(
+            @Param("isAvailable") Boolean isAvailable,
+            @Param("location") String location
+    );
 }

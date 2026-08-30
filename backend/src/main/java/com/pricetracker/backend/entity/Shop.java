@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "shops")
@@ -11,7 +13,7 @@ import java.time.LocalDateTime;
 public class Shop {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
@@ -28,6 +30,13 @@ public class Shop {
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @OneToMany(
+            mappedBy = "shop",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<ShopLocation> locations = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

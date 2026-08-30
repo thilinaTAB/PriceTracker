@@ -29,10 +29,31 @@ public class ProductService {
     private final PriceHistoryRepository priceHistoryRepository;
     private final MasterProductRepository masterProductRepository;
 
-    public List<ProductResponseDTO> getAllProducts(Boolean isAvailable) {
-        List<Product> products = (isAvailable != null)
-                ? productRepository.findByIsAvailable(isAvailable)
-                : productRepository.findAll();
+    public List<ProductResponseDTO> getAllProducts(
+            Boolean isAvailable,
+            String location) {
+
+        List<Product> products;
+
+        if (location != null && !location.isBlank()) {
+
+            if (isAvailable != null) {
+                products = productRepository
+                        .findByIsAvailableAndShopLocations(
+                                isAvailable,
+                                location
+                        );
+            } else {
+                products = productRepository
+                        .findByShopLocations(location);
+            }
+
+        } else {
+
+            products = (isAvailable != null)
+                    ? productRepository.findByIsAvailable(isAvailable)
+                    : productRepository.findAll();
+        }
 
         return products.stream()
                 .map(this::convertToResponseDTO)
