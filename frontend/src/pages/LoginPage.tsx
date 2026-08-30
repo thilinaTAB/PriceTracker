@@ -49,7 +49,7 @@ function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="bg-gray-600 text-white rounded px-3 py-2"
+          className="bg-blue-900 text-white rounded px-3 py-2"
         >
           {loading ? "Logging in..." : "Login"}
         </button>
