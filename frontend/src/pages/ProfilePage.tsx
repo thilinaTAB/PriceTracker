@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/useAuth";
 import { getProfile, updateProfile } from "../api/profile";
+import { Link } from "react-router-dom";
 
 function ProfilePage() {
   const { user, updateUser } = useAuth();
@@ -194,16 +195,12 @@ function ProfilePage() {
                   </div>
 
                   {/* EMAIL */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-800 pb-5">
-                    <div>
+                  <div className="border-b border-gray-800 pb-5">
+                    <div className="text-left">
                       <p className="text-sm text-gray-500">Email</p>
 
                       <p className="text-base text-white mt-1">{email}</p>
                     </div>
-
-                    <span className="px-3 py-1.5 rounded-lg border border-gray-700 bg-gray-800 text-xs text-gray-400">
-                      Not editable
-                    </span>
                   </div>
 
                   {/* MEMBER SINCE */}
@@ -284,6 +281,13 @@ function ProfilePage() {
           </section>
         )}
       </main>
+      {/* Back Link */}
+      <Link
+        to="/"
+        className="text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors mb-6 inline-block"
+      >
+        ← Back to Catalog Dashboard
+      </Link>
     </div>
   );
 }
