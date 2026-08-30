@@ -180,7 +180,7 @@ public class ProductServiceTest {
                 .thenReturn(List.of(testProduct));
 
         List<ProductResponseDTO> result =
-                productService.getAllProducts(null);
+                productService.getAllProducts(null,null);
 
         assertNotNull(result);
 
@@ -214,7 +214,7 @@ public class ProductServiceTest {
         );
 
         List<ProductResponseDTO> result =
-                productService.getAllProducts(true);
+                productService.getAllProducts(true,null);
 
         assertNotNull(result);
 

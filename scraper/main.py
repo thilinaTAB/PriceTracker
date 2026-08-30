@@ -10,13 +10,13 @@ if __name__ == "__main__":
     # print("\n🔷 Running Nanotek scraper...")
     # asyncio.run(nanotek_scraper())
 
-    # print("\n🔷 Running Chama scraper...")
-    # chama_scraper()
+    print("\n🔷 Running Chama scraper...")
+    chama_scraper()
 
     # print("\n🔷 Running Game Street scraper...")
     # gamestreet_scraper()
 
-    print("\n🔷 Running ComputerAge scraper...")
-    asyncio.run(computerage_scraper())
+    # print("\n🔷 Running ComputerAge scraper...")
+    # asyncio.run(computerage_scraper())
 
     print("\n✅ All scrapers done")

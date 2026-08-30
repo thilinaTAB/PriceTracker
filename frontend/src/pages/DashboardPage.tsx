@@ -184,24 +184,60 @@ function DashboardPage() {
     );
   }, [products, selectedCategory]);
 
+  const normalizeBrand = (value: string): string => {
+    const normalized = value
+      .trim()
+      .toUpperCase()
+      .replace(/®/g, "")
+      .replace(/\s+/g, " ");
+
+    if (
+      normalized === "AMD" ||
+      normalized === "AMD RYZEN" ||
+      normalized === "RYZEN"
+    ) {
+      return "AMD";
+    }
+
+    if (normalized === "INTEL") {
+      return "INTEL";
+    }
+
+    return value.trim();
+  };
   // Dynamic brand options.
   const availableBrands = useMemo(() => {
     return Array.from(
       new Set(
         filterSourceProducts
           .map((product) => product.brand?.trim())
-          .filter((brand): brand is string => Boolean(brand)),
+          .filter((brand): brand is string => Boolean(brand))
+          .map((brand) => normalizeBrand(brand)),
       ),
     ).sort((a, b) => a.localeCompare(b));
   }, [filterSourceProducts]);
 
   // Dynamic specification / variant options.
+  const normalizeVariant = (value: string): string => {
+    const normalized = value.trim().toLowerCase().replace(/\s+/g, "");
+
+    // 24", 24inch, 24in, 24 inch → 24"
+    const inchMatch = normalized.match(/^(\d+(?:\.\d+)?)(?:"|inch|in)$/);
+
+    if (inchMatch) {
+      return `${inchMatch[1]}"`;
+    }
+
+    return value.trim();
+  };
+
   const availableVariants = useMemo(() => {
     return Array.from(
       new Set(
         filterSourceProducts
           .map((product) => product.variantValue?.trim())
-          .filter((variant): variant is string => Boolean(variant)),
+          .filter((variant): variant is string => Boolean(variant))
+          .map((variant) => normalizeVariant(variant)),
       ),
     ).sort((a, b) => a.localeCompare(b));
   }, [filterSourceProducts]);
@@ -549,7 +585,7 @@ function DashboardPage() {
               </div>
             )}
 
-            {!isHomeTab && (
+            {!isHomeTab && selectedCategory !== "PROCESSOR" && (
               <div className="mb-6">
                 <h3 className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">
                   Specification
