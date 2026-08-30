@@ -23,8 +23,12 @@ public class ProductController {
 
     @GetMapping
     public ResponseEntity<List<ProductResponseDTO>> getAllProducts(
-            @RequestParam(required = false) Boolean isAvailable) {
-        return ResponseEntity.ok(productService.getAllProducts(isAvailable));
+            @RequestParam(required = false) Boolean isAvailable,
+            @RequestParam(required = false) String location) {
+
+        return ResponseEntity.ok(
+                productService.getAllProducts(isAvailable, location)
+        );
     }
 
     @GetMapping("/{id}")

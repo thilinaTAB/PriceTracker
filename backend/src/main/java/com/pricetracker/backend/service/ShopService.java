@@ -7,6 +7,7 @@ import com.pricetracker.backend.exception.ResourceNotFoundException;
 import com.pricetracker.backend.repository.ShopRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -17,6 +18,7 @@ public class ShopService {
 
     private final ShopRepository shopRepository;
 
+    @Transactional(readOnly = true)
     public List<ShopResponseDTO> getAllShops() {
         return shopRepository.findAll()
                 .stream()
@@ -24,19 +26,27 @@ public class ShopService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public ShopResponseDTO getShopById(Long id) {
         Shop shop = shopRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Shop not found with id: " + id));
+
         return convertToResponseDTO(shop);
     }
 
     public ShopResponseDTO createShop(ShopRequestDTO requestDTO) {
         Shop shop = convertToEntity(requestDTO);
-        return convertToResponseDTO(shopRepository.save(shop));
+
+        return convertToResponseDTO(
+                shopRepository.save(shop)
+        );
     }
 
-    public ShopResponseDTO updateShop(Long id, ShopRequestDTO requestDTO) {
+    public ShopResponseDTO updateShop(
+            Long id,
+            ShopRequestDTO requestDTO
+    ) {
         Shop existingShop = shopRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Shop not found with id: " + id));
@@ -46,33 +56,49 @@ public class ShopService {
         existingShop.setLogoUrl(requestDTO.getLogoUrl());
         existingShop.setActive(requestDTO.isActive());
 
-        return convertToResponseDTO(shopRepository.save(existingShop));
+        return convertToResponseDTO(
+                shopRepository.save(existingShop)
+        );
     }
 
     public void deleteShop(Long id) {
         Shop shop = shopRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Shop not found with id: " + id));
+
         shopRepository.delete(shop);
     }
 
     private ShopResponseDTO convertToResponseDTO(Shop shop) {
+
         ShopResponseDTO dto = new ShopResponseDTO();
+
         dto.setId(shop.getId());
         dto.setName(shop.getName());
         dto.setWebsiteUrl(shop.getWebsiteUrl());
         dto.setLogoUrl(shop.getLogoUrl());
         dto.setActive(shop.isActive());
         dto.setCreatedAt(shop.getCreatedAt());
+
+        dto.setLocations(
+                shop.getLocations()
+                        .stream()
+                        .map(location -> location.getLocation())
+                        .toList()
+        );
+
         return dto;
     }
 
     private Shop convertToEntity(ShopRequestDTO dto) {
+
         Shop shop = new Shop();
+
         shop.setName(dto.getName());
         shop.setWebsiteUrl(dto.getWebsiteUrl());
         shop.setLogoUrl(dto.getLogoUrl());
         shop.setActive(dto.isActive());
+
         return shop;
     }
 }

@@ -8,6 +8,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import WishlistPage from "./pages/WishlistPage";
 import AdminProductsPage from "./pages/AdminProductsPage";
+import ProfilePage from "./pages/ProfilePage";
 import Footer from "./components/Footer";
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/admin/products" element={<AdminProductsPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Routes>
         <Footer></Footer>
       </BrowserRouter>
