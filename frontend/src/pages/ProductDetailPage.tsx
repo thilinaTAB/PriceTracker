@@ -816,24 +816,20 @@ function ProductDetailPage() {
                       </button>
                     )}
 
-                    {offer.isAvailable ? (
-                      <a
-                        href={offer.sourceUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={`text-xs font-bold px-4 py-2.5 rounded-lg transition-colors ${
-                          index === 0
+                    <a
+                      href={offer.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`text-xs font-bold px-4 py-2.5 rounded-lg transition-colors whitespace-nowrap ${
+                        offer.isAvailable
+                          ? index === 0
                             ? "bg-blue-600 text-white hover:bg-blue-500"
                             : "bg-gray-700 text-gray-200 hover:bg-gray-600"
-                        }`}
-                      >
-                        Buy Offer
-                      </a>
-                    ) : (
-                      <span className="text-xs font-bold px-4 py-2.5 rounded-lg bg-gray-900 text-gray-500 border border-gray-700 cursor-not-allowed whitespace-nowrap">
-                        Out of Stock
-                      </span>
-                    )}
+                          : "bg-gray-900 text-gray-500 border border-gray-700 hover:bg-gray-800 hover:text-gray-300"
+                      }`}
+                    >
+                      {offer.isAvailable ? "Buy Offer" : "Out of Stock"}
+                    </a>
                   </div>
                 </div>
               ))}
