@@ -147,6 +147,8 @@ function RegisterPage() {
           Login
         </Link>
       </p>
+      <br />
+      <br />
     </div>
   );
 }
