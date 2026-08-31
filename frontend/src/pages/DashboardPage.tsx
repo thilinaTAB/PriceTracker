@@ -109,7 +109,7 @@ function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    getProducts(true, selectedLocation).then((data) => {
+    getProducts(undefined, selectedLocation).then((data) => {
       setProducts(data);
       setCurrentPage(1);
     });

@@ -80,6 +80,10 @@ function AdminProductsPage() {
 
   const [search, setSearch] = useState("");
 
+  // Pagination
+  const PRODUCTS_PER_PAGE = 20;
+  const [currentPage, setCurrentPage] = useState(1);
+
   const [error, setError] = useState<string | null>(null);
 
   const [success, setSuccess] = useState<string | null>(null);
@@ -198,6 +202,38 @@ function AdminProductsPage() {
       ].some((field) => field.toLowerCase().includes(value)),
     );
   }, [products, search]);
+
+  /*
+   * Calculate pagination.
+   */
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE),
+  );
+
+  /*
+   * Keep the current page valid when
+   * products are deleted or filtered.
+   */
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
+
+  /*
+   * Reset pagination when search changes.
+   */
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  /*
+   * Products displayed on the current page.
+   */
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
+
+    return filteredProducts.slice(startIndex, startIndex + PRODUCTS_PER_PAGE);
+  }, [filteredProducts, currentPage]);
 
   /*
    * Open edit modal.
@@ -420,104 +456,146 @@ function AdminProductsPage() {
               No products found.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-gray-950 text-xs uppercase tracking-wider text-gray-500">
-                  <tr>
-                    <th className="px-5 py-4">Product</th>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-950 text-xs uppercase tracking-wider text-gray-500">
+                    <tr>
+                      <th className="px-5 py-4">Product</th>
 
-                    <th className="px-5 py-4">Shop</th>
+                      <th className="px-5 py-4">Shop</th>
 
-                    <th className="px-5 py-4">Price</th>
+                      <th className="px-5 py-4">Price</th>
 
-                    <th className="px-5 py-4">Availability</th>
+                      <th className="px-5 py-4">Availability</th>
 
-                    <th className="px-5 py-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-gray-800">
-                  {filteredProducts.map((product) => (
-                    <tr key={product.id} className="hover:bg-gray-800/50">
-                      {/* Product */}
-                      <td className="px-5 py-4 min-w-[320px]">
-                        <div className="flex items-center gap-3">
-                          {product.imageUrl ? (
-                            <img
-                              src={product.imageUrl}
-                              alt=""
-                              className="w-12 h-12 rounded-lg object-contain bg-gray-800 p-1"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 rounded-lg bg-gray-800" />
-                          )}
-
-                          <div>
-                            <p className="font-semibold text-white text-sm">
-                              {product.name}
-                            </p>
-
-                            <p className="text-xs text-gray-500 mt-1">
-                              {product.brand}
-
-                              {product.modelNumber &&
-                                ` • ${product.modelNumber}`}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Shop */}
-                      <td className="px-5 py-4 text-sm text-gray-300">
-                        {product.shopName}
-                      </td>
-
-                      {/* Price */}
-                      <td className="px-5 py-4 text-sm font-bold text-white whitespace-nowrap">
-                        Rs. {product.price.toLocaleString()}
-                      </td>
-
-                      {/* Availability */}
-                      <td className="px-5 py-4">
-                        <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            product.isAvailable
-                              ? "bg-green-950 text-green-400"
-                              : "bg-red-950 text-red-400"
-                          }`}
-                        >
-                          {product.isAvailable ? "Available" : "Out of Stock"}
-                        </span>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleEdit(product)}
-                            className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-500"
-                          >
-                            Edit
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => void handleDelete(product)}
-                            disabled={deletingId === product.id}
-                            className="rounded-lg bg-red-700 px-3 py-2 text-xs font-bold text-white hover:bg-red-600 disabled:opacity-50"
-                          >
-                            {deletingId === product.id
-                              ? "Deleting..."
-                              : "Delete"}
-                          </button>
-                        </div>
-                      </td>
+                      <th className="px-5 py-4 text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+
+                  <tbody className="divide-y divide-gray-800">
+                    {paginatedProducts.map((product) => (
+                      <tr key={product.id} className="hover:bg-gray-800/50">
+                        {/* Product */}
+                        <td className="px-5 py-4 min-w-[320px]">
+                          <div className="flex items-center gap-3">
+                            {product.imageUrl ? (
+                              <img
+                                src={product.imageUrl}
+                                alt=""
+                                className="w-12 h-12 rounded-lg object-contain bg-gray-800 p-1"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-lg bg-gray-800" />
+                            )}
+
+                            <div>
+                              <p className="font-semibold text-white text-sm">
+                                {product.name}
+                              </p>
+
+                              <p className="text-xs text-gray-500 mt-1">
+                                {product.brand}
+
+                                {product.modelNumber &&
+                                  ` • ${product.modelNumber}`}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Shop */}
+                        <td className="px-5 py-4 text-sm text-gray-300">
+                          {product.shopName}
+                        </td>
+
+                        {/* Price */}
+                        <td className="px-5 py-4 text-sm font-bold text-white whitespace-nowrap">
+                          Rs. {product.price.toLocaleString()}
+                        </td>
+
+                        {/* Availability */}
+                        <td className="px-5 py-4">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                              product.isAvailable
+                                ? "bg-green-950 text-green-400"
+                                : "bg-red-950 text-red-400"
+                            }`}
+                          >
+                            {product.isAvailable ? "Available" : "Out of Stock"}
+                          </span>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-5 py-4">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleEdit(product)}
+                              className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-500"
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => void handleDelete(product)}
+                              disabled={deletingId === product.id}
+                              className="rounded-lg bg-red-700 px-3 py-2 text-xs font-bold text-white hover:bg-red-600 disabled:opacity-50"
+                            >
+                              {deletingId === product.id
+                                ? "Deleting..."
+                                : "Delete"}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-4 border-t border-gray-800">
+                <p className="text-sm text-gray-500">
+                  Showing {(currentPage - 1) * PRODUCTS_PER_PAGE + 1} –{" "}
+                  {Math.min(
+                    currentPage * PRODUCTS_PER_PAGE,
+                    filteredProducts.length,
+                  )}{" "}
+                  of {filteredProducts.length} products
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCurrentPage((page) => Math.max(page - 1, 1))
+                    }
+                    disabled={currentPage === 1}
+                    className="rounded-lg bg-gray-800 px-3 py-2 text-sm font-semibold text-gray-300 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    ← Previous
+                  </button>
+
+                  <span className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white">
+                    {currentPage} / {totalPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCurrentPage((page) => Math.min(page + 1, totalPages))
+                    }
+                    disabled={currentPage === totalPages}
+                    className="rounded-lg bg-gray-800 px-3 py-2 text-sm font-semibold text-gray-300 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>
